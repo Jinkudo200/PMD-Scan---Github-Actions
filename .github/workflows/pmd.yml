@@ -27,6 +27,13 @@ jobs:
           unzip pmd.zip -d $HOME
           mv $HOME/pmd-bin-* $HOME/pmd
 
+      - name: Download full PMD distribution
+        run: |
+          curl -L -o pmd_bin.zip https://github.com/pmd/pmd/releases/download/pmd_releases/7.17.0/pmd-bin-7.17.0-bin.zip
+          unzip pmd_bin.zip -d $HOME
+          # Move to a stable folder name
+          mv $HOME/pmd-bin-7.17.0 $HOME/pmd_bin
+        
       - name: Compile custom PMD rules
         run: |
           mkdir -p bin
@@ -34,19 +41,16 @@ jobs:
           CP=$(echo $HOME/pmd/lib/*.jar | tr ' ' ':')
           javac -cp "$CP" -d bin src/main/java/rules/*.java
           jar cf custom-rules.jar -C bin .
+          cp custom-rules.jar $HOME/pmd_bin/lib/
 
 
       - name: Run PMD with custom rules
         run: |
-          # Copy custom rules jar to PMD folder
-          cp custom-rules.jar $HOME/pmd/lib/
-
-          # Run PMD using the PMD launcher script
-          $HOME/pmd/bin/run.sh pmd \
-            -d ./apex-classes \
-            -R ./apex-ruleset.xml \
-            -f text > pmd-report.txt
-
+          $HOME/pmd_bin/bin/run.sh pmd \
+          -d ./apex-classes \
+          -R ./apex-ruleset.xml \
+          -f text > pmd-report.txt
+    
       - name: Upload PMD Report
         uses: actions/upload-artifact@v4
         with:
