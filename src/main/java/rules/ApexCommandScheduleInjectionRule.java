@@ -3,11 +3,12 @@ package rules;
 import java.util.HashSet;
 import java.util.Set;
 
-import net.sourceforge.pmd.lang.apex.ast.ASTBinaryExpression;
+import net.sourceforge.pmd.lang.apex.ast.ASTAssignmentExpression;
+import net.sourceforge.pmd.lang.apex.ast.ASTFieldDeclaration;
 import net.sourceforge.pmd.lang.apex.ast.ASTLiteralExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTMethodCallExpression;
+import net.sourceforge.pmd.lang.apex.ast.ASTVariableDeclaration;
 import net.sourceforge.pmd.lang.apex.ast.ASTVariableExpression;
-import net.sourceforge.pmd.lang.apex.ast.ApexNode;
 import net.sourceforge.pmd.lang.apex.rule.AbstractApexRule;
 import net.sourceforge.pmd.lang.rule.RulePriority;
 import net.sourceforge.pmd.lang.apex.rule.internal.Helper;
@@ -25,75 +26,71 @@ public class ApexCommandScheduleInjectionRule extends AbstractApexRule {
     }
 
     @Override
-    public Object visit(ASTMethodCallExpression node, Object data) {
-
-        // Check for System.schedule calls
-        if (Helper.isMethodName(node, SYSTEM_SCHEDULER)) {
-            ASTVariableExpression var = node.firstChild(ASTVariableExpression.class);
-            ASTBinaryExpression binExpr = node.firstChild(ASTBinaryExpression.class);
-            ASTLiteralExpression literal = node.firstChild(ASTLiteralExpression.class);
-
-            // If literal string, consider safe
-            if (literal != null) {
-                // Do nothing, safe
-            } else if (var != null) {
-                String fqName = Helper.getFQVariableName(var);
-                if (!safeVariables.contains(fqName)) {
-                    asCtx(data).addViolation(var);
-                }
-            } else if (binExpr != null) {
-                checkBinaryExpression(binExpr, data);
-            }
-        }
-
+    public Object visit(ASTVariableDeclaration node, Object data) {
+        markSafeIfLiteralOrEscaped(node);
         return super.visit(node, data);
     }
 
-    private void checkBinaryExpression(ASTBinaryExpression node, Object data) {
-        ASTVariableExpression var = node.firstChild(ASTVariableExpression.class);
-        ASTMethodCallExpression methodCall = node.firstChild(ASTMethodCallExpression.class);
-        ASTLiteralExpression literal = node.firstChild(ASTLiteralExpression.class);
-
-        boolean isSafe = false;
-
-        if (var != null && safeVariables.contains(Helper.getFQVariableName(var))) {
-            isSafe = true;
-        }
-
-        if (methodCall != null) {
-            if (Helper.isMethodName(methodCall, ESCAPE_SINGLE_QUOTES) || Helper.isMethodName(methodCall, STRING_JOIN)) {
-                isSafe = true;
-            }
-        }
-
-        if (literal != null) {
-            isSafe = true; // literals are safe
-        }
-
-        if (!isSafe) {
-            asCtx(data).addViolation(node);
-        }
-
-        // Recurse into left/right children
-        ASTBinaryExpression left = node.firstChild(ASTBinaryExpression.class);
-        if (left != null) checkBinaryExpression(left, data);
+    @Override
+    public Object visit(ASTAssignmentExpression node, Object data) {
+        markSafeIfLiteralOrEscaped(node);
+        return super.visit(node, data);
     }
 
     @Override
-    public Object visit(ApexNode<?> node, Object data) {
-        // Collect safe variables: literals, numbers, booleans, or escaped strings
-        ASTVariableExpression var = node.firstChild(ASTVariableExpression.class);
-        ASTLiteralExpression literal = node.firstChild(ASTLiteralExpression.class);
-        ASTMethodCallExpression methodCall = node.firstChild(ASTMethodCallExpression.class);
+    public Object visit(ASTFieldDeclaration node, Object data) {
+        markSafeIfLiteralOrEscaped(node);
+        return super.visit(node, data);
+    }
 
-        if (var != null && literal != null) {
-            if (literal.isString() || literal.isInteger() || literal.isBoolean()) {
+    private void markSafeIfLiteralOrEscaped(Object nodeObj) {
+        ASTVariableExpression var = null;
+        ASTLiteralExpression literal = null;
+        ASTMethodCallExpression methodCall = null;
+
+        if (nodeObj instanceof ASTVariableDeclaration) {
+            ASTVariableDeclaration node = (ASTVariableDeclaration) nodeObj;
+            var = node.firstChild(ASTVariableExpression.class);
+            literal = node.firstChild(ASTLiteralExpression.class);
+            methodCall = node.firstChild(ASTMethodCallExpression.class);
+        } else if (nodeObj instanceof ASTAssignmentExpression) {
+            ASTAssignmentExpression node = (ASTAssignmentExpression) nodeObj;
+            var = node.firstChild(ASTVariableExpression.class);
+            literal = node.firstChild(ASTLiteralExpression.class);
+            methodCall = node.firstChild(ASTMethodCallExpression.class);
+        } else if (nodeObj instanceof ASTFieldDeclaration) {
+            ASTFieldDeclaration node = (ASTFieldDeclaration) nodeObj;
+            var = node.firstChild(ASTVariableExpression.class);
+            literal = node.firstChild(ASTLiteralExpression.class);
+            methodCall = node.firstChild(ASTMethodCallExpression.class);
+        }
+
+        if (var != null) {
+            if (literal != null && (literal.isString() || literal.isBoolean() || literal.isInteger())) {
+                safeVariables.add(Helper.getFQVariableName(var));
+            }
+            if (methodCall != null && (Helper.isMethodName(methodCall, ESCAPE_SINGLE_QUOTES)
+                    || Helper.isMethodName(methodCall, STRING_JOIN))) {
                 safeVariables.add(Helper.getFQVariableName(var));
             }
         }
+    }
 
-        if (methodCall != null && Helper.isMethodName(methodCall, ESCAPE_SINGLE_QUOTES)) {
-            if (var != null) safeVariables.add(Helper.getFQVariableName(var));
+    @Override
+    public Object visit(ASTMethodCallExpression node, Object data) {
+        if (!Helper.isMethodName(node, SYSTEM_SCHEDULER)) {
+            return super.visit(node, data);
+        }
+
+        ASTVariableExpression var = node.firstChild(ASTVariableExpression.class);
+        ASTLiteralExpression literal = node.firstChild(ASTLiteralExpression.class);
+
+        if (literal != null) {
+            // literal is safe
+        } else if (var != null) {
+            if (!safeVariables.contains(Helper.getFQVariableName(var))) {
+                asCtx(data).addViolation(var);
+            }
         }
 
         return super.visit(node, data);
