@@ -17,8 +17,12 @@ public class ApexTaintSoqlRule extends AbstractApexRule {
     private final Set<String> safeVariables = new HashSet<>();
 
     public ApexTaintSoqlRule() {
-        setRuleTargetSelector(RuleTargetSelector.forTypes(ASTUserClass.class));
         setPriority(RulePriority.HIGH); // PMD 7 style
+    }
+
+    @Override
+    protected RuleTargetSelector buildTargetSelector() {
+        return RuleTargetSelector.forTypes(ASTUserClass.class);
     }
 
     @Override
