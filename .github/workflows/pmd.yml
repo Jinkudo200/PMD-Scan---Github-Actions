@@ -30,6 +30,6 @@ jobs:
       - name: Compile custom PMD rules
         run: |
           mkdir -p bin
-          javac -cp "$HOME/pmd/lib/pmd-core-7.17.0.jar:$HOME/pmd/lib/pmd-apex-7.17.0.jar" \
+          javac -cp "$HOME/pmd/lib/*.jar" \
             -d bin src/main/java/rules/ApexInsecureDeserializationRule.java
           jar cf custom-rules.jar -C bin .
