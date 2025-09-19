@@ -8,12 +8,13 @@ import net.sourceforge.pmd.lang.apex.ast.ASTVariableExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTUserClass;
 import net.sourceforge.pmd.lang.apex.rule.AbstractApexRule;
 import net.sourceforge.pmd.lang.apex.rule.internal.Helper;
+import net.sourceforge.pmd.lang.rule.RulePriority;
 import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
 
 public class ApexSensitiveLoggingRule extends AbstractApexRule {
 
     public ApexSensitiveLoggingRule() {
-        setPriority(2); // High priority for security
+        setPriority(RulePriority.HIGH); // High priority for security
     }
 
     @Override
@@ -31,13 +32,13 @@ public class ApexSensitiveLoggingRule extends AbstractApexRule {
                 String methodName = call.getMethodName();
                 if (methodName != null && methodName.toLowerCase().contains("log")) {
 
-                    // Check if logging sensitive data: variable expressions of type Id or String
-                    for (ASTVariableExpression var : call.descendants(ASTVariableExpression.class).toList()) {
-                        String type = var.getType();
-                        if (type != null && (type.equalsIgnoreCase("Id") || type.equalsIgnoreCase("String"))) {
+                    // Check all arguments of the log call
+                    call.getArguments().forEach(arg -> {
+                        for (ASTVariableExpression var : arg.descendants(ASTVariableExpression.class).toList()) {
+                            // In PMD 7+, just flag all variables in logging calls
                             asCtx(data).addViolation(var);
                         }
-                    }
+                    });
                 }
             }
         }
