@@ -6,15 +6,54 @@
 
   <description>My custom PMD rules for Apex security</description>
 
-   <!-- Inline custom Java rule -->
-         <rule name="Insecure Deserialization"
+   <!-- ========================== -->
+    <!-- 1. Hardcoded Secrets & Named Credentials -->
+    <!-- ========================== -->
+    <rule name="Hardcoded-Secrets-And-Named-Credentials-Rule"
+          language="apex"
+          class="rules.ApexHardcodedSecretsNamedCredRule"
+          message="Hardcoded secret, API key, password, or token found.">
+        <priority>2</priority>
+    </rule>
+
+    <!-- ========================== -->
+    <!-- 2. Sensitive Logging & Monitoring -->
+    <!-- ========================== -->
+    <rule name="Sensitive-Logging-And-Monitoring-Enhanced-Rule"
+          language="apex"
+          class="rules.ApexSensitiveLoggingRule"
+          message="Sensitive data or PII logged in debug output.">
+        <priority>2</priority>
+    </rule>
+
+    <!-- ========================== -->
+    <!-- 3. Insecure Deserialization -->
+    <!-- ========================== -->
+    <rule name="Insecure-Deserialization-Enhanced-Rule"
           language="apex"
           class="rules.ApexInsecureDeserializationRule"
           message="Unsafe deserialization of untrusted input detected.">
-         <priority>2</priority>
-         </rule>
-         
-         <!-- Example built-in Apex rule -->
-         <rule ref="category/apex/security.xml"/>
+        <priority>2</priority>
+    </rule>
+
+    <!-- ========================== -->
+    <!-- 5. SOQL Injection -->
+    <!-- ========================== -->
+    <rule name="SOQL-Injection-Taint-Rule"
+          language="apex"
+          class="rules.ApexTaintSoqlRule"
+          message="Potential SOQL injection detected. Validate or escape input.">
+        <priority>1</priority>
+    </rule>
+
+    <!-- ========================== -->
+    <!-- 6. Command Injection & Schedule -->
+    <!-- ========================== -->
+    <rule name="Command-Injection-And-Schedule-Rule"
+          language="apex"
+          class="rules.ApexCommandScheduleInjectionRule"
+          message="Unsafe command execution or scheduled job with untrusted input detected.">
+        <priority>2</priority>
+    </rule>
 
 </ruleset>
