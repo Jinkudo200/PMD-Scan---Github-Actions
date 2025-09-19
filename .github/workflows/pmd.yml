@@ -34,3 +34,22 @@ jobs:
           CP=$(echo $HOME/pmd/lib/*.jar | tr ' ' ':')
           javac -cp "$CP" -d bin src/main/java/rules/*.java
           jar cf custom-rules.jar -C bin .
+
+
+      - name: Run PMD with Custom Rules
+        run: |
+          # Build classpath including PMD jars and your custom rules
+          CP="$HOME/pmd/lib/*:custom-rules.jar"
+          
+          # Run PMD scan on your Apex classes using your ruleset
+          java -cp "$CP" net.sourceforge.pmd.PMD \
+            -d src/apex \
+            -R apex-ruleset.xml \
+            -f github \
+            -r pmd-report.json
+
+      - name: Upload PMD Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: pmd-report
+          path: pmd-report.json
