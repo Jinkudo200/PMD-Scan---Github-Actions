@@ -16,25 +16,26 @@ import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
  * - Sensitive data exposure
  * - Use of vulnerable/unsupported components
  *
- * Aligns with OWASP Top 10: A1 (Broken Access Control), A3 (Sensitive Data Exposure), A6 (Vulnerable Components)
+ * Aligns with OWASP Top 10: A1, A3, A6
  */
 public class ApexDeprecatedApisRule extends AbstractApexRule {
 
     private static final Set<String> DEPRECATED_METHODS = new HashSet<>();
 
     static {
-        // Add known deprecated or unsafe Apex methods
-        DEPRECATED_METHODS.add("Crypto.generateDigest");           // Weak hash
-        DEPRECATED_METHODS.add("Crypto.encryptWithManagedIV");     // Legacy encryption
-        DEPRECATED_METHODS.add("Http.send");                        // Old HTTP API
-        DEPRECATED_METHODS.add("Database.emptyRecycleBin");        // Can delete sensitive data
-        DEPRECATED_METHODS.add("System.enqueueJobLegacy");         // Legacy queueable
-        DEPRECATED_METHODS.add("JSON.deserializeUntyped");         // Risky deserialization
-        DEPRECATED_METHODS.add("JSON.deserialize");                // Unsafe if no validation
+        // Known deprecated or unsafe Apex methods
+        DEPRECATED_METHODS.add("generateDigest");           // Weak hash
+        DEPRECATED_METHODS.add("encryptWithManagedIV");     // Legacy encryption
+        DEPRECATED_METHODS.add("send");                     // Deprecated HTTP
+        DEPRECATED_METHODS.add("emptyRecycleBin");          // Can delete sensitive data
+        DEPRECATED_METHODS.add("enqueueJobLegacy");         // Legacy queueable
+        DEPRECATED_METHODS.add("deserializeUntyped");       // Unsafe deserialization
+        DEPRECATED_METHODS.add("deserialize");              // Unsafe if no validation
     }
 
     public ApexDeprecatedApisRule() {
-        setPriority(net.sourceforge.pmd.lang.rule.RulePriority.MEDIUM);
+        // Medium priority
+        setPriority(PMD.Priority.MEDIUM);
     }
 
     @Override
@@ -44,38 +45,28 @@ public class ApexDeprecatedApisRule extends AbstractApexRule {
 
     @Override
     public Object visit(ASTUserClass node, Object data) {
-        // Skip test classes
+        // Skip test classes and system-level classes
         if (Helper.isTestMethodOrClass(node) || Helper.isSystemLevelClass(node)) {
             return data;
         }
 
-        // Iterate over all method calls in the class
         for (ASTMethodCallExpression call : node.descendants(ASTMethodCallExpression.class)) {
-            String methodName = call.getMethodName();
-            String definingType = call.getDefiningType() != null ? call.getDefiningType() : "";
-
-            // Build full method identifier
-            String fullMethod = definingType.isEmpty() ? methodName : definingType + "." + methodName;
-
-            // Lowercase for robust comparison
-            String fullMethodLower = fullMethod.toLowerCase();
-            String methodLower = methodName != null ? methodName.toLowerCase() : "";
+            String methodName = call.getMethodName() != null ? call.getMethodName() : "";
+            String image = call.getImage() != null ? call.getImage() : "";
 
             for (String deprecated : DEPRECATED_METHODS) {
-                String depLower = deprecated.toLowerCase();
-
-                if (depLower.equals(fullMethodLower) || depLower.equals(methodLower)) {
+                // Match on method name or image text
+                if (methodName.equalsIgnoreCase(deprecated) || image.contains(deprecated)) {
                     asCtx(data).addViolation(
                         call,
-                        "Deprecated or unsafe API used: " + fullMethod +
+                        "Deprecated or unsafe API used: " + (image.isEmpty() ? methodName : image) +
                         ". Risk: sensitive data exposure or broken access control. " +
-                        "Refer to OWASP Top 10 (A1, A3, A6). Consider updating to secure alternatives."
+                        "Refer to OWASP Top 10 (A1, A3, A6). Update to secure alternatives."
                     );
                     break;
                 }
             }
         }
-
         return data;
     }
 }
