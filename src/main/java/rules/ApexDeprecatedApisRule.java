@@ -13,18 +13,17 @@ import net.sourceforge.pmd.lang.apex.rule.internal.Helper;
 /**
  * MEDIUM priority
  * Detects usage of deprecated or discouraged Apex/Platform APIs
- * (e.g., old SOAP APIs, insecure crypto methods, outdated HTTP libraries)
  * OWASP relevance: outdated/insecure APIs can contribute to A6:2021 – Vulnerable & Outdated Components
  */
 public class ApexDeprecatedApisRule extends AbstractApexRule {
 
     // List of method names considered deprecated or insecure
     private static final List<String> DEPRECATED_METHODS = Arrays.asList(
-        "Crypto.generateDigest",  // example: weak hashing
-        "Crypto.encryptWithManagedIV", // outdated
-        "Http.send",              // old synchronous send (could encourage poor practices)
-        "Database.emptyRecycleBin", // discouraged
-        "System.enqueueJobLegacy" // hypothetical old API
+        "Crypto.generateDigest",
+        "Crypto.encryptWithManagedIV",
+        "Http.send",
+        "Database.emptyRecycleBin",
+        "System.enqueueJobLegacy"
     );
 
     public ApexDeprecatedApisRule() {
@@ -48,7 +47,8 @@ public class ApexDeprecatedApisRule extends AbstractApexRule {
         for (ASTMethodCallExpression call : node.descendants(ASTMethodCallExpression.class)) {
             String methodName = call.getMethodName();
             if (methodName != null && DEPRECATED_METHODS.contains(methodName)) {
-                addViolationWithMessage(data, call,
+                // Correct PMD 7+ usage
+                asCtx(data).addViolation(call,
                         "Use of deprecated or insecure API '" + methodName + "' detected. Consider updating to a secure alternative.");
             }
         }
