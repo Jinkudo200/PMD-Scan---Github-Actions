@@ -33,6 +33,10 @@ jobs:
           unzip pmd_bin.zip -d $HOME
           # Move to a stable folder name
           mv $HOME/pmd-bin-7.17.0 $HOME/pmd_bin
+          chmod +x $HOME/pmd_bin/bin/pmd      # make launcher executable
+          # Convert line endings in case they are CRLF
+          sudo apt-get install -y dos2unix
+          dos2unix $HOME/pmd_bin/bin/pmd
         
       - name: Compile custom PMD rules
         run: |
@@ -44,12 +48,12 @@ jobs:
           cp custom-rules.jar $HOME/pmd_bin/lib/
 
 
-      - name: Run PMD with custom rules
+      - name: Run PMD scan
         run: |
-          $HOME/pmd_bin/bin/pmd.bat pmd \
-          -d ./apex-classes \
-          -R ./apex-ruleset.xml \
-          -f text > pmd-report.txt
+          $HOME/pmd_bin/bin/pmd pmd \
+            -d ./apex-classes \
+            -R ./apex-ruleset.xml \
+            -f text > pmd-report.txt
     
       - name: Upload PMD Report
         uses: actions/upload-artifact@v4
