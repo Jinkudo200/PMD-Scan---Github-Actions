@@ -32,5 +32,5 @@ jobs:
           mkdir -p bin
           # Use all jars in PMD lib for compilation
           CP=$(echo $HOME/pmd/lib/*.jar | tr ' ' ':')
-          javac -cp "$CP" -d bin src/main/java/rules/ApexInsecureDeserializationRule.java
+          javac -cp "$CP" -d bin src/main/java/rules/*.java
           jar cf custom-rules.jar -C bin .
