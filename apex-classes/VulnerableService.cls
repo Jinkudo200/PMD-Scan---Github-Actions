@@ -137,26 +137,3 @@ public class VulnerableService {
         System.debug('attack dump: ' + password);             // 34
     }
 }
-
-public class MySched implements Schedulable {
-    public void execute(SchedulableContext sc) {
-        // no-op
-    }
-}
-
-public class MyQueueable implements Queueable {
-    private String name;
-    public MyQueueable(String name) { this.name = name; }
-    public void execute(QueueableContext qc) {
-      // no-op
-    }
-}
-
-public class MyBatch implements Database.Batchable<SObject> {
-    private List<SObject> records;
-    private String name;
-    public MyBatch(List<SObject> r, String name) { this.records = r; this.name = name; }
-    public Database.QueryLocator start(Database.BatchableContext bc) { return null; }
-    public void execute(Database.BatchableContext bc, List<SObject> scope) {}
-    public void finish(Database.BatchableContext bc) {}
-}
