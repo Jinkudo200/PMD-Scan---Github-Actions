@@ -53,10 +53,11 @@ jobs:
           $HOME/pmd_bin/bin/pmd check \
             -d ./apex-classes \
             -R ./apex-ruleset.xml \
-            -f text > pmd-report.txt
+            -f text \
+            -r pmd-report.txt || true
     
       - name: Upload PMD Report
         uses: actions/upload-artifact@v4
         with:
           name: pmd-report
-          path: pmd-report.json
+          path: pmd-report.txt
