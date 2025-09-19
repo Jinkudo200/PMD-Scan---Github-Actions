@@ -1,11 +1,10 @@
 public class VulnerableAuthService {
 
     // -----------------------
-    // 1. Global/Public methods without 'with sharing'
+    // Global/Public methods without 'with sharing'
     // -----------------------
     public void publicMethod1() {
-        Account a = [SELECT Id FROM Account LIMIT 1]; // violation: SObject access without sharing
-        System.debug(a);
+        Account a = [SELECT Id FROM Account LIMIT 1]; // SObject access without sharing
     }
 
     global void globalMethod1() {
@@ -17,16 +16,11 @@ public class VulnerableAuthService {
     }
 
     // -----------------------
-    // 2. WebService / REST methods missing auth check
+    // REST methods missing auth check
     // -----------------------
     @RestResource(urlMapping='/vuln1/*')
     global static void restMethod1() {
         List<Account> accounts = [SELECT Id FROM Account]; // violation
-    }
-
-    @WebService
-    global static void wsMethod1() {
-        Account a = [SELECT Id FROM Account LIMIT 1]; // violation
     }
 
     @RestResource(urlMapping='/vuln2/*')
@@ -35,20 +29,19 @@ public class VulnerableAuthService {
     }
 
     // -----------------------
-    // 3. Multiple SObject operations without sharing
+    // Multiple SObject operations without sharing
     // -----------------------
     public void modifyRecords() {
         List<Account> accs = [SELECT Id, Name FROM Account];
         for(Account a : accs){
-            a.Name = 'Changed'; // violation
+            a.Name = 'Changed';
         }
-        update accs; // violation
-
-        delete [SELECT Id FROM Contact LIMIT 1]; // violation
+        update accs; 
+        delete [SELECT Id FROM Contact LIMIT 1]; 
     }
 
     global void globalBatchOp() {
-        insert new Account(Name='Batch1'); // violation
-        insert new Account(Name='Batch2'); // violation
+        insert new Account(Name='Batch1'); 
+        insert new Account(Name='Batch2'); 
     }
 }
