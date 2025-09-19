@@ -1,0 +1,49 @@
+name: PMD with Custom Rules
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Download PMD
+        run: |
+          curl -L -o pmd.zip https://github.com/pmd/pmd/releases/download/pmd_releases/7.17.0/pmd-dist-7.17.0-bin.zip
+          unzip pmd.zip -d $HOME
+          mv $HOME/pmd-bin-* $HOME/pmd
+
+      - name: Compile custom PMD rules
+        run: |
+          mkdir -p bin
+          javac -cp "$HOME/pmd/lib/pmd-core-7.17.0.jar:$HOME/pmd/lib/pmd-apex-7.17.0.jar" \
+            -d bin src/main/java/rules/*.java
+          jar cf custom-rules.jar -C bin .
+
+      - name: Run PMD with custom rules
+        run: |
+          $HOME/pmd/bin/pmd check \
+            -d ./apex-classes \
+            -R ./apex-ruleset.xml \
+            -auxclasspath custom-rules.jar \
+            -f text > pmd-report.txt
+
+      - name: Upload PMD report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmd-report
+          path: pmd-report.txt
