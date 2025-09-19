@@ -50,8 +50,8 @@ jobs:
 
       - name: Run PMD scan
         run: |
-          $HOME/pmd_bin/bin/pmd pmd \
-            -d ./apex-classes \
+          $HOME/pmd_bin/bin/pmd check \
+            -d ./src/apex \
             -R ./apex-ruleset.xml \
             -f text > pmd-report.txt
     
