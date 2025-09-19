@@ -1,33 +1,36 @@
 package rules;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import net.sourceforge.pmd.lang.apex.ast.ASTMethodCallExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTUserClass;
 import net.sourceforge.pmd.lang.apex.rule.AbstractApexRule;
-import net.sourceforge.pmd.lang.rule.RulePriority;
-import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
 import net.sourceforge.pmd.lang.apex.rule.internal.Helper;
+import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
 
 /**
- * MEDIUM priority
- * Detects usage of deprecated or discouraged Apex/Platform APIs
- * OWASP relevance: outdated/insecure APIs can contribute to A6:2021 – Vulnerable & Outdated Components
+ * MEDIUM priority rule
+ * Detects usage of deprecated or unsafe APIs that can lead to:
+ * - Broken access control
+ * - Sensitive data exposure
+ * - Use of vulnerable/unsupported components
+ * 
+ * Aligns with OWASP Top 10: A1, A3, A6
  */
 public class ApexDeprecatedApisRule extends AbstractApexRule {
 
-    // List of method names considered deprecated or insecure
-    private static final List<String> DEPRECATED_METHODS = Arrays.asList(
-        "Crypto.generateDigest",
-        "Crypto.encryptWithManagedIV",
-        "Http.send",
-        "Database.emptyRecycleBin",
-        "System.enqueueJobLegacy"
-    );
+    private static final Set<String> DEPRECATED_METHODS = new HashSet<>();
 
-    public ApexDeprecatedApisRule() {
-        setPriority(RulePriority.MEDIUM);
+    static {
+        // Add known deprecated or unsafe Apex methods
+        DEPRECATED_METHODS.add("Crypto.generateDigest");           // Weak hash
+        DEPRECATED_METHODS.add("Crypto.encryptWithManagedIV");     // Legacy encryption
+        DEPRECATED_METHODS.add("Http.send");                        // Old HTTP API
+        DEPRECATED_METHODS.add("Database.emptyRecycleBin");        // Can delete sensitive data
+        DEPRECATED_METHODS.add("System.enqueueJobLegacy");         // Legacy queueable
+        DEPRECATED_METHODS.add("JSON.deserializeUntyped");         // Risky deserialization
+        DEPRECATED_METHODS.add("JSON.deserialize");                // If no validation, unsafe
     }
 
     @Override
@@ -37,22 +40,24 @@ public class ApexDeprecatedApisRule extends AbstractApexRule {
 
     @Override
     public Object visit(ASTUserClass node, Object data) {
-
-        // Ignore test classes and system classes
+        // Skip test classes
         if (Helper.isTestMethodOrClass(node) || Helper.isSystemLevelClass(node)) {
             return data;
         }
 
-        // Scan all method calls in the class
         for (ASTMethodCallExpression call : node.descendants(ASTMethodCallExpression.class)) {
-            String methodName = call.getMethodName();
-            if (methodName != null && DEPRECATED_METHODS.contains(methodName)) {
-                // Correct PMD 7+ usage
-                asCtx(data).addViolation(call,
-                        "Use of deprecated or insecure API '" + methodName + "' detected. Consider updating to a secure alternative.");
+            String fullMethod = Helper.getFullMethodName(call);
+
+            if (DEPRECATED_METHODS.contains(fullMethod)) {
+                // Add violation with detailed OWASP guidance
+                asCtx(data).addViolation(
+                    call,
+                    "Deprecated or unsafe API used: " + fullMethod +
+                    ". Risk: sensitive data exposure or broken access control. " +
+                    "Refer to OWASP Top 10 (A1, A3, A6). Consider updating to secure alternatives."
+                );
             }
         }
-
         return data;
     }
 }
