@@ -9,7 +9,7 @@
    <!-- Inline custom Java rule -->
          <rule name="Insecure Deserialization"
           language="apex"
-          class="rules.InsecureDeserializationRule"
+          class="rules.ApexInsecureDeserializationRule"
           message="Unsafe deserialization of untrusted input detected.">
          <priority>2</priority>
          </rule>
