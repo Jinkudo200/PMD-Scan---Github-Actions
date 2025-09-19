@@ -64,4 +64,14 @@
              <priority>3</priority>
          </rule>
 
+         <!-- ========================== -->
+         <!-- Deprecated / Discouraged APIs -->
+         <!-- ========================== -->
+         <rule name="Deprecated-Apis-Rule"
+               language="apex"
+               class="rules.ApexDeprecatedApisRule"
+               message="Usage of deprecated or insecure API detected. Update to a secure alternative.">
+             <priority>3</priority> <!-- Medium -->
+         </rule>
+
 </ruleset>
