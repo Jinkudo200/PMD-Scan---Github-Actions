@@ -15,7 +15,7 @@ import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
  * - Broken access control
  * - Sensitive data exposure
  * - Use of vulnerable/unsupported components
- * 
+ *
  * Aligns with OWASP Top 10: A1, A3, A6
  */
 public class ApexDeprecatedApisRule extends AbstractApexRule {
@@ -30,7 +30,7 @@ public class ApexDeprecatedApisRule extends AbstractApexRule {
         DEPRECATED_METHODS.add("Database.emptyRecycleBin");        // Can delete sensitive data
         DEPRECATED_METHODS.add("System.enqueueJobLegacy");         // Legacy queueable
         DEPRECATED_METHODS.add("JSON.deserializeUntyped");         // Risky deserialization
-        DEPRECATED_METHODS.add("JSON.deserialize");                // If no validation, unsafe
+        DEPRECATED_METHODS.add("JSON.deserialize");                // Unsafe if no validation
     }
 
     @Override
@@ -46,7 +46,11 @@ public class ApexDeprecatedApisRule extends AbstractApexRule {
         }
 
         for (ASTMethodCallExpression call : node.descendants(ASTMethodCallExpression.class)) {
-            String fullMethod = Helper.getFullMethodName(call);
+            String methodName = call.getMethodName();
+            String definingType = call.getDefiningType() != null ? call.getDefiningType() : "";
+
+            // Build full method identifier
+            String fullMethod = definingType.isEmpty() ? methodName : definingType + "." + methodName;
 
             if (DEPRECATED_METHODS.contains(fullMethod)) {
                 // Add violation with detailed OWASP guidance
