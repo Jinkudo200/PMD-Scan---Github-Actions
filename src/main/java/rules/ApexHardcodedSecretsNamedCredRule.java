@@ -1,76 +1,63 @@
 /*
  * BSD-style license; for more info see http://pmd.sourceforge.net/license.html
  */
-package net.sourceforge.pmd.lang.apex.rule.security;
 
-import java.util.Set;
-import java.util.regex.Pattern;
+package rules;
 
-import java.util.HashSet;
-import net.sourceforge.pmd.lang.apex.ast.ASTFieldDeclaration;
-import net.sourceforge.pmd.lang.apex.ast.ASTLiteralExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTMethodCallExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTVariableExpression;
+import net.sourceforge.pmd.lang.apex.ast.ASTBinaryExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTUserClass;
-import net.sourceforge.pmd.lang.apex.ast.ApexNode;
 import net.sourceforge.pmd.lang.apex.rule.AbstractApexRule;
 import net.sourceforge.pmd.lang.apex.rule.internal.Helper;
-import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
-/**
- * HIGH priority
- * Detects:
- *  - suspicious long string literals (look like tokens)
- *  - fields/vars whose names contain SECRET/KEY/PASSWORD
- *  - HttpRequest.setEndpoint called with literal HTTP(S) URL instead of "callout:Named_Credential"
- */
+import java.util.List;
+
 public class ApexHardcodedSecretsNamedCredRule extends AbstractApexRule {
 
-    private static final Pattern SUSPICIOUS_KEY = Pattern.compile("[A-Za-z0-9\\-_]{20,}");
-    private static final Set<String> KEYWORDS = Set.of("apikey", "api_key", "secret", "password", "token", "clientsecret");
-
-    private final Set<String> suspiciousVars = new HashSet<>();
+    public ApexHardcodedSecretsNamedCredRule() {
+        setName("ApexHardcodedSecretsNamedCredRule");
+        setDescription("Detect hardcoded secrets that should use Named Credentials");
+        setMessage("Avoid hardcoding secrets, use Named Credentials instead.");
+        setPriority(net.sourceforge.pmd.lang.rule.RulePriority.HIGH);
+    }
 
     @Override
-    protected RuleTargetSelector buildTargetSelector() {
-        return RuleTargetSelector.forTypes(ASTUserClass.class);
+    protected @NonNull net.sourceforge.pmd.lang.rule.RuleTargetSelector buildTargetSelector() {
+        return net.sourceforge.pmd.lang.rule.RuleTargetSelector.forTypes(ASTUserClass.class);
     }
 
     @Override
     public Object visit(ASTUserClass node, Object data) {
-        if (Helper.isTestMethodOrClass(node) || Helper.isSystemLevelClass(node)) return data;
 
-        // literals and fields
-        for (ASTLiteralExpression lit : node.descendants(ASTLiteralExpression.class)) {
-            if (!lit.isString()) continue;
-            String raw = lit.getImage() == null ? "" : lit.getImage().replaceAll("^['\"]|['\"]$", "");
-            if (SUSPICIOUS_KEY.matcher(raw).find()) {
-                asCtx(data).addViolation(lit);
-            } else {
-                // check context var/field name
-                ASTVariableExpression var = lit.ancestors(ASTVariableExpression.class).first();
-                if (var != null) {
-                    String varName = var.getImage() == null ? "" : var.getImage().toLowerCase();
-                    for (String kw : KEYWORDS) {
-                        if (varName.contains(kw) || raw.toLowerCase().contains(kw)) {
-                            asCtx(data).addViolation(lit);
-                            break;
-                        }
-                    }
-                }
-            }
+        // Skip test classes
+        if (Helper.isTestMethodOrClass(node) || Helper.isSystemLevelClass(node)) {
+            return data;
         }
 
-        // HttpRequest.setEndpoint checks
-        for (ASTMethodCallExpression call : node.descendants(ASTMethodCallExpression.class)) {
-            if ("HttpRequest".equals(call.getDefiningType()) && "setEndpoint".equals(call.getMethodName())) {
-                ASTLiteralExpression lit = call.firstChild(ASTLiteralExpression.class);
-                if (lit != null && lit.isString()) {
-                    String val = lit.getImage() == null ? "" : lit.getImage().toLowerCase();
-                    if ((val.startsWith("'http") || val.startsWith("\"http")) && !val.contains("callout:")) {
-                        asCtx(data).addViolation(call);
+        // Find all method calls in the class
+        for (ASTMethodCallExpression call : node.descendants(ASTMethodCallExpression.class).toList()) {
+
+            String fullMethodName = call.getFullMethodName();
+
+            // Detect problematic methods
+            if ("HttpRequest.setHeader".equalsIgnoreCase(fullMethodName) ||
+                "HttpRequest.setEndpoint".equalsIgnoreCase(fullMethodName)) {
+
+                // Check for string literals or variables
+                List<ASTVariableExpression> args = call.descendants(ASTVariableExpression.class).toList();
+
+                for (ASTVariableExpression arg : args) {
+                    String argName = arg.getImage();
+                    if (argName != null && !argName.isEmpty()) {
+                        // Flag the variable
+                        asCtx(data).addViolation(arg);
                     }
-                } else if (call.hasDescendantOfType(net.sourceforge.pmd.lang.apex.ast.ASTBinaryExpression.class)) {
+                }
+
+                // Also detect binary expressions in arguments (concatenated strings)
+                if (!call.descendants(ASTBinaryExpression.class).toList().isEmpty()) {
                     asCtx(data).addViolation(call);
                 }
             }
