@@ -13,7 +13,6 @@ public class ApexWeakAuthAndSharingRule extends AbstractApexRule {
 
     @Override
     protected RuleTargetSelector buildTargetSelector() {
-        // Target user classes
         return RuleTargetSelector.forTypes(ASTUserClass.class);
     }
 
@@ -23,18 +22,33 @@ public class ApexWeakAuthAndSharingRule extends AbstractApexRule {
 
         for (ASTMethod method : node.descendants(ASTMethod.class)) {
 
-            // Skip test methods or system-level
-            if (method.isTestMethod() || method.isTestAnnotationPresent()) {
-                continue;
+            // Skip test methods (look for @IsTest annotation)
+            boolean isTest = false;
+            for (ASTAnnotation ann : method.descendants(ASTAnnotation.class)) {
+                String annName = ann.getImage() == null ? "" : ann.getImage().toLowerCase();
+                if (annName.equals("istest")) {
+                    isTest = true;
+                    break;
+                }
+            }
+            if (isTest) continue;
+
+            // Detect method visibility modifiers
+            boolean isPublic = false;
+            boolean isGlobal = false;
+            for (ASTModifier mod : method.descendants(ASTModifier.class)) {
+                String modName = mod.getImage() == null ? "" : mod.getImage().toLowerCase();
+                if (modName.equals("public")) isPublic = true;
+                if (modName.equals("global")) isGlobal = true;
             }
 
-            // 1. Detect Global/Public methods without 'with sharing'
-            if (!withSharing && (method.isPublic() || method.isGlobal())) {
-                asCtx(data).addViolation(method, 
+            // 1. Global/Public methods without 'with sharing'
+            if (!withSharing && (isPublic || isGlobal)) {
+                asCtx(data).addViolation(method,
                     "Global/Public method in class without 'with sharing' may expose sensitive data. [OWASP A01]");
             }
 
-            // 2. Detect webservice / REST methods missing auth
+            // 2. Webservice / REST methods missing auth check
             for (ASTAnnotation ann : method.descendants(ASTAnnotation.class)) {
                 String name = ann.getImage() == null ? "" : ann.getImage();
                 if (name.equalsIgnoreCase("RestResource") || name.equalsIgnoreCase("WebService")) {
@@ -45,13 +59,14 @@ public class ApexWeakAuthAndSharingRule extends AbstractApexRule {
                 }
             }
 
-            // 3. Detect SObject access without sharing enforcement
+            // 3. SObject access without sharing enforcement
             for (ASTMethodCallExpression call : method.descendants(ASTMethodCallExpression.class)) {
                 String def = call.getDefiningType() == null ? "" : call.getDefiningType();
                 String m = call.getMethodName() == null ? "" : call.getMethodName();
                 if ("Database".equals(def) && (m.equals("query") || m.equals("update") || m.equals("insert") || m.equals("delete"))) {
                     if (!withSharing) {
-                        asCtx(data).addViolation(call, "SObject access without sharing enforcement detected. [OWASP A01]");
+                        asCtx(data).addViolation(call,
+                            "SObject access without sharing enforcement detected. [OWASP A01]");
                     }
                 }
             }
@@ -59,10 +74,6 @@ public class ApexWeakAuthAndSharingRule extends AbstractApexRule {
         return data;
     }
 
-    /**
-     * Simple heuristic: check if method contains calls to authentication checks.
-     * Could be improved to detect real Auth patterns in Apex.
-     */
     private boolean hasAuthCheck(ASTMethod method) {
         for (ASTMethodCallExpression call : method.descendants(ASTMethodCallExpression.class)) {
             String name = call.getMethodName() == null ? "" : call.getMethodName().toLowerCase();
