@@ -41,9 +41,11 @@ jobs:
       - name: Compile custom PMD rules
         run: |
           mkdir -p bin
-          javac -cp ".\pmd-core-7.17.0.jar;.\pmd-apex-7.17.0.jar;.\summit-ast-2.4.0.jar" -d bin src/main/java/rules/*.java
+          # Use all jars in PMD lib for compilation
+          CP=$(echo $HOME/pmd/lib/*.jar | tr ' ' ':')
+          javac -cp "$CP" -d bin src/main/java/rules/*.java
           jar cf custom-rules.jar -C bin .
-          cp custom-rules.jar .\pmd_bin\lib\
+          cp custom-rules.jar $HOME/pmd_bin/lib/
 
 
       - name: Run PMD scan
