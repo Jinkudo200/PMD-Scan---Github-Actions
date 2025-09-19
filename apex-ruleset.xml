@@ -6,11 +6,15 @@
 
   <description>My custom PMD rules for Apex security</description>
 
-   <rule name="Insecure-Deserialization-Enhanced-Rule"
+   <!-- Inline custom Java rule -->
+         <rule name="Insecure Deserialization"
           language="apex"
-          class="rules.ApexInsecureDeserializationRule"
+          class="rules.InsecureDeserializationRule"
           message="Unsafe deserialization of untrusted input detected.">
-        <priority>2</priority>
-    </rule>
+         <priority>2</priority>
+         </rule>
+         
+         <!-- Example built-in Apex rule -->
+         <rule ref="category/apex/security.xml"/>
 
 </ruleset>
