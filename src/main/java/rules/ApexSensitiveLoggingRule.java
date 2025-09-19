@@ -13,6 +13,7 @@ import net.sourceforge.pmd.lang.rule.RulePriority;
 import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Detects logging of sensitive data (e.g., DML objects, passwords, secrets)
@@ -27,14 +28,15 @@ public class ApexSensitiveLoggingRule extends AbstractApexRule {
 
     @Override
     protected RuleTargetSelector buildTargetSelector() {
-        // Only visit method call expressions inside classes
         return RuleTargetSelector.forTypes(ASTUserClass.class);
     }
 
     @Override
     public Object visit(ASTUserClass node, Object data) {
 
-        for (ASTMethodCallExpression call : node.findDescendantsOfType(ASTMethodCallExpression.class)) {
+        // Use descendants() and filter manually
+        List<ASTMethodCallExpression> methodCalls = node.descendants(ASTMethodCallExpression.class).toList();
+        for (ASTMethodCallExpression call : methodCalls) {
             processMethodCall(call, data);
         }
 
@@ -44,13 +46,11 @@ public class ApexSensitiveLoggingRule extends AbstractApexRule {
     private void processMethodCall(ASTMethodCallExpression call, Object data) {
         String fullMethodName = call.getFullMethodName();
 
-        // Check System.debug or custom logging methods
         if ("System.debug".equals(fullMethodName) || fullMethodName.endsWith(".log")) {
 
-            // Check all arguments passed to the method
-            List<ASTVariableExpression> args = call.findDescendantsOfType(ASTVariableExpression.class);
+            // Collect all variable expressions inside the call
+            List<ASTVariableExpression> args = call.descendants(ASTVariableExpression.class).toList();
             for (ASTVariableExpression arg : args) {
-                // Detect if argument looks like a sensitive object
                 String varName = arg.getImage();
                 if (isSensitiveVariable(varName)) {
                     asCtx(data).addViolation(arg);
@@ -59,10 +59,6 @@ public class ApexSensitiveLoggingRule extends AbstractApexRule {
         }
     }
 
-    /**
-     * Simple heuristic for sensitive variables.
-     * In a more advanced rule, you can enhance this by type inference.
-     */
     private boolean isSensitiveVariable(String varName) {
         String lower = varName.toLowerCase();
         return lower.contains("password") || lower.contains("secret") || lower.contains("token") ||
