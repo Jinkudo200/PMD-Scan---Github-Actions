@@ -29,7 +29,7 @@ jobs:
 
       - name: Download full PMD distribution
         run: |
-          curl -L -o pmd_bin.zip https://github.com/pmd/pmd/releases/download/pmd_releases/7.17.0/pmd-bin-7.17.0-bin.zip
+          curl -L -o pmd_bin.zip https://github.com/pmd/pmd/releases/download/pmd_releases%2F7.17.0/pmd-dist-7.17.0-bin.zip
           unzip pmd_bin.zip -d $HOME
           # Move to a stable folder name
           mv $HOME/pmd-bin-7.17.0 $HOME/pmd_bin
@@ -46,7 +46,7 @@ jobs:
 
       - name: Run PMD with custom rules
         run: |
-          $HOME/pmd_bin/bin/run.sh pmd \
+          $HOME/pmd_bin/bin/pmd.bat pmd \
           -d ./apex-classes \
           -R ./apex-ruleset.xml \
           -f text > pmd-report.txt
