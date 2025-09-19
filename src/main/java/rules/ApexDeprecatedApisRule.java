@@ -35,7 +35,7 @@ public class ApexDeprecatedApisRule extends AbstractApexRule {
 
     public ApexDeprecatedApisRule() {
         // Medium priority
-        setPriority(PMD.Priority.MEDIUM);
+        setPriority(RulePriority.MEDIUM);
     }
 
     @Override
