@@ -38,11 +38,11 @@ jobs:
 
       - name: Run PMD with custom rules
         run: |
-          # Build a classpath including all PMD jars + your custom rules
-          CP=$(echo $HOME/pmd/lib/*.jar | tr ' ' ':'):custom-rules.jar
-          
-          # Run PMD
-          java -cp "$CP" net.sourceforge.pmd.PMD \
+          # Copy custom rules jar to PMD folder
+          cp custom-rules.jar $HOME/pmd/lib/
+
+          # Run PMD using the PMD launcher script
+          $HOME/pmd/bin/run.sh pmd \
             -d ./apex-classes \
             -R ./apex-ruleset.xml \
             -f text > pmd-report.txt
