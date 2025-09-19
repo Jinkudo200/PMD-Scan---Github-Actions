@@ -4,54 +4,68 @@
 
 package rules;
 
-import net.sourceforge.pmd.RuleContext;
 import net.sourceforge.pmd.lang.apex.ast.ASTMethodCallExpression;
+import net.sourceforge.pmd.lang.apex.ast.ASTUserClass;
 import net.sourceforge.pmd.lang.apex.ast.ASTVariableExpression;
-import net.sourceforge.pmd.lang.apex.ast.ASTVariableDeclaration;
 import net.sourceforge.pmd.lang.apex.rule.AbstractApexRule;
-import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
-import net.sourceforge.pmd.lang.rule.properties.PropertyDescriptor;
-import net.sourceforge.pmd.lang.rule.properties.StringProperty;
+import net.sourceforge.pmd.lang.apex.rule.internal.Helper;
 import net.sourceforge.pmd.lang.rule.RulePriority;
+import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
 
 import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
 
+/**
+ * Detects logging of sensitive data (e.g., DML objects, passwords, secrets)
+ * via System.debug or custom logging calls.
+ */
 public class ApexSensitiveLoggingRule extends AbstractApexRule {
 
-    private static final Set<String> SENSITIVE_METHODS = new HashSet<>(Set.of(
-            "System.debug",
-            "System.info",
-            "System.warn",
-            "System.error",
-            "LoggingService.log" // add custom logging calls if needed
-    ));
-
     public ApexSensitiveLoggingRule() {
-        setRuleName("ApexSensitiveLoggingRule");
-        setPriority(RulePriority.HIGH); // PMD 7+
+        setName("ApexSensitiveLoggingRule");
+        setPriority(RulePriority.HIGH); // High priority for security
     }
 
     @Override
     protected RuleTargetSelector buildTargetSelector() {
-        return RuleTargetSelector.forTypes(ASTMethodCallExpression.class);
+        // Only visit method call expressions inside classes
+        return RuleTargetSelector.forTypes(ASTUserClass.class);
     }
 
     @Override
-    public Object visit(ASTMethodCallExpression node, Object data) {
-        String fullMethodName = node.getFullMethodName();
+    public Object visit(ASTUserClass node, Object data) {
 
-        if (SENSITIVE_METHODS.contains(fullMethodName)) {
-            // Check child nodes for variables passed to the logging call
-            List<ASTVariableExpression> vars = node.findDescendantsOfType(ASTVariableExpression.class);
-
-            for (ASTVariableExpression var : vars) {
-                // Report the variable being logged
-                asCtx(data).addViolation(var);
-            }
+        for (ASTMethodCallExpression call : node.findDescendantsOfType(ASTMethodCallExpression.class)) {
+            processMethodCall(call, data);
         }
 
         return data;
+    }
+
+    private void processMethodCall(ASTMethodCallExpression call, Object data) {
+        String fullMethodName = call.getFullMethodName();
+
+        // Check System.debug or custom logging methods
+        if ("System.debug".equals(fullMethodName) || fullMethodName.endsWith(".log")) {
+
+            // Check all arguments passed to the method
+            List<ASTVariableExpression> args = call.findDescendantsOfType(ASTVariableExpression.class);
+            for (ASTVariableExpression arg : args) {
+                // Detect if argument looks like a sensitive object
+                String varName = arg.getImage();
+                if (isSensitiveVariable(varName)) {
+                    asCtx(data).addViolation(arg);
+                }
+            }
+        }
+    }
+
+    /**
+     * Simple heuristic for sensitive variables.
+     * In a more advanced rule, you can enhance this by type inference.
+     */
+    private boolean isSensitiveVariable(String varName) {
+        String lower = varName.toLowerCase();
+        return lower.contains("password") || lower.contains("secret") || lower.contains("token") ||
+               lower.contains("creditcard") || lower.contains("sobject") || lower.contains("dml");
     }
 }
