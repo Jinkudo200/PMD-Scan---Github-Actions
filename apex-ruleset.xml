@@ -56,4 +56,12 @@
         <priority>2</priority>
     </rule>
 
+
+         <rule name="Weak-Authentication-And-Sharing-Rule"
+               language="apex"
+               class="rules.ApexWeakAuthAndSharingRule"
+               message="Weak authentication or missing sharing enforcement detected. Review method access and sharing settings.">
+             <priority>3</priority>
+         </rule>
+
 </ruleset>
