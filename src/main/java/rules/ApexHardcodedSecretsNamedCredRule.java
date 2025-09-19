@@ -4,121 +4,113 @@
 
 package rules;
 
-import net.sourceforge.pmd.lang.apex.ast.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import net.sourceforge.pmd.lang.apex.ast.ASTAssignmentExpression;
+import net.sourceforge.pmd.lang.apex.ast.ASTLiteralExpression;
+import net.sourceforge.pmd.lang.apex.ast.ASTMethodCallExpression;
+import net.sourceforge.pmd.lang.apex.ast.ASTUserClass;
+import net.sourceforge.pmd.lang.apex.ast.ASTVariableDeclaration;
+import net.sourceforge.pmd.lang.apex.ast.ASTVariableExpression;
 import net.sourceforge.pmd.lang.apex.rule.AbstractApexRule;
-import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
-import net.sourceforge.pmd.lang.apex.rule.internal.Helper;
+import net.sourceforge.pmd.lang.rule.RulePriority;
 
-import java.util.*;
-import java.util.regex.Pattern;
-
+/**
+ * Detects hardcoded secrets and endpoints that should use Named Credentials.
+ */
 public class ApexHardcodedSecretsNamedCredRule extends AbstractApexRule {
 
-    // Sensitive header names to flag
-    private static final Set<String> SENSITIVE_HEADERS = Set.of(
-            "Authorization", "Api-Key", "X-API-KEY", "Bearer"
-    );
-
-    // Regex for detecting likely secrets
-    private static final Pattern SECRET_PATTERN = Pattern.compile(
-            ".*(password|secret|token|apikey|bearer).*", Pattern.CASE_INSENSITIVE
-    );
-
-    // Track variables that contain hardcoded secrets
     private final Set<String> trackedSecrets = new HashSet<>();
 
     public ApexHardcodedSecretsNamedCredRule() {
+        // Set a high priority for security-critical issues
+        setPriority(RulePriority.HIGH);
         setName("ApexHardcodedSecretsNamedCredRule");
-        setPriority(net.sourceforge.pmd.lang.rule.RulePriority.HIGH);
-    }
-
-    @Override
-    protected RuleTargetSelector buildTargetSelector() {
-        return RuleTargetSelector.forTypes(ASTUserClass.class);
+        setMessage("Hardcoded secret or endpoint detected. Use Named Credentials instead.");
     }
 
     @Override
     public Object visit(ASTUserClass node, Object data) {
 
-        // Track variable assignments for literals that look like secrets
-        for (ASTVariableDeclaration varDecl : node.findDescendantsOfType(ASTVariableDeclaration.class)) {
+        // 1️⃣ Track hardcoded secrets in variable declarations
+        for (ASTVariableDeclaration varDecl : node.descendants(ASTVariableDeclaration.class).toList()) {
             ASTLiteralExpression literal = varDecl.firstChild(ASTLiteralExpression.class);
             ASTVariableExpression var = varDecl.firstChild(ASTVariableExpression.class);
 
             if (literal != null && var != null && looksLikeSecret(literal.getImage())) {
                 trackedSecrets.add(var.getImage());
+                asCtx(data).addViolation(literal, "Hardcoded secret in variable declaration detected.");
             }
         }
 
-        // Track assignment expressions
-        for (ASTAssignmentExpression assign : node.findDescendantsOfType(ASTAssignmentExpression.class)) {
+        // 2️⃣ Track hardcoded secrets in assignments
+        for (ASTAssignmentExpression assign : node.descendants(ASTAssignmentExpression.class).toList()) {
             ASTVariableExpression left = assign.firstChild(ASTVariableExpression.class);
             ASTLiteralExpression rightLiteral = assign.firstChild(ASTLiteralExpression.class);
+
             if (left != null && rightLiteral != null && looksLikeSecret(rightLiteral.getImage())) {
                 trackedSecrets.add(left.getImage());
+                asCtx(data).addViolation(rightLiteral, "Hardcoded secret in assignment detected.");
             }
         }
 
-        // Check all method calls
-        for (ASTMethodCallExpression call : node.findDescendantsOfType(ASTMethodCallExpression.class)) {
+        // 3️⃣ Check method calls like setEndpoint or setHeader
+        for (ASTMethodCallExpression call : node.descendants(ASTMethodCallExpression.class).toList()) {
             String methodName = call.getMethodName();
 
+            // Check endpoints
             if ("setEndpoint".equals(methodName)) {
-                checkEndpoint(call, data);
+                ASTLiteralExpression literal = call.firstChild(ASTLiteralExpression.class);
+                ASTVariableExpression var = call.firstChild(ASTVariableExpression.class);
+                checkEndpoint(literal, var, data);
             }
 
+            // Check headers for hardcoded secrets
             if ("setHeader".equals(methodName)) {
-                checkHeader(call, data);
+                List<ASTLiteralExpression> literals = call.descendants(ASTLiteralExpression.class).toList();
+                List<ASTVariableExpression> vars = call.descendants(ASTVariableExpression.class).toList();
+                checkHeader(literals, vars, data);
             }
         }
 
-        trackedSecrets.clear(); // reset after class processed
         return data;
     }
 
-    private void checkEndpoint(ASTMethodCallExpression call, Object data) {
-        ASTLiteralExpression literal = call.firstChild(ASTLiteralExpression.class);
-        ASTVariableExpression var = call.firstChild(ASTVariableExpression.class);
-
-        // Literal endpoint
+    private void checkEndpoint(ASTLiteralExpression literal, ASTVariableExpression var, Object data) {
         if (literal != null) {
-            String endpoint = literal.getImage();
-            if (!isNamedCredential(endpoint) || looksLikeSecret(endpoint)) {
+            if (!isNamedCredential(literal) || looksLikeSecret(literal.getImage())) {
                 asCtx(data).addViolation(literal, "Hardcoded endpoint or secret detected. Use Named Credential.");
             }
         }
 
-        // Variable endpoint
         if (var != null && trackedSecrets.contains(var.getImage())) {
             asCtx(data).addViolation(var, "Variable used in endpoint contains a hardcoded secret.");
         }
     }
 
-    private void checkHeader(ASTMethodCallExpression call, Object data) {
-        List<ASTLiteralExpression> literals = call.findDescendantsOfType(ASTLiteralExpression.class);
-        List<ASTVariableExpression> vars = call.findDescendantsOfType(ASTVariableExpression.class);
-
-        // Check header name and value
-        if (!literals.isEmpty()) {
-            String headerName = literals.get(0).getImage();
-            if (SENSITIVE_HEADERS.contains(headerName)) {
-                if (literals.size() > 1 && looksLikeSecret(literals.get(1).getImage())) {
-                    asCtx(data).addViolation(literals.get(1), "Hardcoded sensitive header value detected.");
-                }
+    private void checkHeader(List<ASTLiteralExpression> literals, List<ASTVariableExpression> vars, Object data) {
+        for (ASTLiteralExpression lit : literals) {
+            if (looksLikeSecret(lit.getImage())) {
+                asCtx(data).addViolation(lit, "Hardcoded secret in HTTP header detected.");
             }
         }
 
-        // Check variables used as header value
         for (ASTVariableExpression var : vars) {
             if (trackedSecrets.contains(var.getImage())) {
-                asCtx(data).addViolation(var, "Variable used as sensitive header contains a hardcoded secret.");
+                asCtx(data).addViolation(var, "Variable used in header contains a hardcoded secret.");
             }
         }
     }
 
+    /**
+     * Very basic heuristic for secrets. Can be extended.
+     */
     private boolean looksLikeSecret(String value) {
-        if (value == null || value.isEmpty()) return false;
-        return SECRET_PATTERN.matcher(value).matches();
+        if (value == null) return false;
+        String trimmed = value.trim();
+        return trimmed.length() > 5 && (trimmed.matches(".*\\d.*") || trimmed.matches(".*[A-Za-z]{5,}.*"));
     }
 
     private boolean isNamedCredential(ASTLiteralExpression literal) {
