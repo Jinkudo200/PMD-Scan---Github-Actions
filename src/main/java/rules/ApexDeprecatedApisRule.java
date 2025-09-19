@@ -16,7 +16,7 @@ import net.sourceforge.pmd.lang.rule.RuleTargetSelector;
  * - Sensitive data exposure
  * - Use of vulnerable/unsupported components
  *
- * Aligns with OWASP Top 10: A1, A3, A6
+ * Aligns with OWASP Top 10: A1 (Broken Access Control), A3 (Sensitive Data Exposure), A6 (Vulnerable Components)
  */
 public class ApexDeprecatedApisRule extends AbstractApexRule {
 
@@ -33,6 +33,10 @@ public class ApexDeprecatedApisRule extends AbstractApexRule {
         DEPRECATED_METHODS.add("JSON.deserialize");                // Unsafe if no validation
     }
 
+    public ApexDeprecatedApisRule() {
+        setPriority(net.sourceforge.pmd.lang.rule.RulePriority.MEDIUM);
+    }
+
     @Override
     protected RuleTargetSelector buildTargetSelector() {
         return RuleTargetSelector.forTypes(ASTUserClass.class);
@@ -45,6 +49,7 @@ public class ApexDeprecatedApisRule extends AbstractApexRule {
             return data;
         }
 
+        // Iterate over all method calls in the class
         for (ASTMethodCallExpression call : node.descendants(ASTMethodCallExpression.class)) {
             String methodName = call.getMethodName();
             String definingType = call.getDefiningType() != null ? call.getDefiningType() : "";
@@ -52,16 +57,25 @@ public class ApexDeprecatedApisRule extends AbstractApexRule {
             // Build full method identifier
             String fullMethod = definingType.isEmpty() ? methodName : definingType + "." + methodName;
 
-            if (DEPRECATED_METHODS.contains(fullMethod)) {
-                // Add violation with detailed OWASP guidance
-                asCtx(data).addViolation(
-                    call,
-                    "Deprecated or unsafe API used: " + fullMethod +
-                    ". Risk: sensitive data exposure or broken access control. " +
-                    "Refer to OWASP Top 10 (A1, A3, A6). Consider updating to secure alternatives."
-                );
+            // Lowercase for robust comparison
+            String fullMethodLower = fullMethod.toLowerCase();
+            String methodLower = methodName != null ? methodName.toLowerCase() : "";
+
+            for (String deprecated : DEPRECATED_METHODS) {
+                String depLower = deprecated.toLowerCase();
+
+                if (depLower.equals(fullMethodLower) || depLower.equals(methodLower)) {
+                    asCtx(data).addViolation(
+                        call,
+                        "Deprecated or unsafe API used: " + fullMethod +
+                        ". Risk: sensitive data exposure or broken access control. " +
+                        "Refer to OWASP Top 10 (A1, A3, A6). Consider updating to secure alternatives."
+                    );
+                    break;
+                }
             }
         }
+
         return data;
     }
 }
