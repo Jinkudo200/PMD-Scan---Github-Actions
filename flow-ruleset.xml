@@ -199,11 +199,12 @@
              <properties>
                  <property name="xpath">
                      <value>
-                         //flowElements//*[matches(text(), '\{\![^}]+\}', 'm')]
+                         //elements//*[matches(., '\{\![^}]+\}', 'm')]
                      </value>
                  </property>
              </properties>
          </rule>
+
 
 
 
