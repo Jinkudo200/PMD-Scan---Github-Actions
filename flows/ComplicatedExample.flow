@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <variables>
+        <variable name="userEmail" dataType="String"/>
+        <variable name="secretToken" dataType="String"/>
+        <variable name="unusedVar" dataType="String"/>
+    </variables>
+
+    <elements>
+        <!-- Assignment with hardcoded email and password -->
+        <element type="Assignment" name="AssignHardcodedValues">
+            <assignmentItems>
+                <assignmentItem>
+                    <value>
+                        <stringValue>admin@example.com</stringValue>
+                    </value>
+                </assignmentItem>
+                <assignmentItem>
+                    <value>
+                        <stringValue>MySecretPassword123</stringValue>
+                    </value>
+                </assignmentItem>
+                <assignmentItem>
+                    <value>
+                        <stringValue>001xx000003DGbQAAW</stringValue>
+                    </value>
+                </assignmentItem>
+                <assignmentItem>
+                    <value>
+                        <stringValue>http://insecure-endpoint.com/api</stringValue>
+                    </value>
+                </assignmentItem>
+            </assignmentItems>
+        </element>
+
+        <!-- GetRecords without filter -->
+        <element type="GetRecords" name="GetAllAccounts">
+            <getRecords/>
+        </element>
+
+        <!-- Empty Decision element -->
+        <element type="Decision" name="DecisionWithoutConditions">
+            <decisions/>
+        </element>
+
+        <!-- Assignment with embedded HTML -->
+        <element type="Assignment" name="HtmlInjectionExample">
+            <assignmentItems>
+                <assignmentItem>
+                    <value>
+                        <stringValue>&lt;script&gt;alert('XSS')&lt;/script&gt;</stringValue>
+                    </value>
+                </assignmentItem>
+            </assignmentItems>
+        </element>
+
+        <!-- Logging sensitive token -->
+        <element type="Assignment" name="LogSensitiveToken">
+            <assignmentItems>
+                <assignmentItem>
+                    <value>
+                        <stringValue>SuperSecretAPIKey</stringValue>
+                    </value>
+                </assignmentItem>
+            </assignmentItems>
+        </element>
+    </elements>
+</Flow>
