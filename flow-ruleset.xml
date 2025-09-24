@@ -1,19 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<ruleset name="Custom Flow Ruleset - OWASP & Salesforce Security"
+<ruleset name="Custom Flow Ruleset - OWASP &amp; Salesforce Security"
          xmlns="http://pmd.sourceforge.net/ruleset/3.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/3.0.0
-                             https://pmd.github.io/pmd-7.0.0/ruleset_3_0_0.xsd">
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/3.0.0 https://pmd.sourceforge.net/ruleset_3_0_0.xsd">
 
     <description>
-        Custom PMD ruleset for Salesforce Flow metadata using XPath 3.1 rules (PMD 7).
-        These rules map to OWASP Top 10 concerns and typical Salesforce security requirements:
-        - Sensitive data detection & protection
-        - Unprotected variables and hardcoded secrets
-        - Unfiltered queries & bulk/loop anti-patterns
-        - Missing error/fault handling
-        - Insecure HTTP, script injection, and calls to Apex/actions that need review
+        Custom Flow ruleset covering OWASP Top 10 risks and Salesforce security best practices.
     </description>
 
     <!-- RULE 1: Hardcoded credentials / API keys / tokens -->
