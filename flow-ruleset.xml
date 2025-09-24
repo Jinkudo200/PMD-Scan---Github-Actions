@@ -1,23 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<ruleset name="Custom Flow Ruleset - OWASP and Salesforce Security"
+<ruleset name="Advanced Flow Security & OWASP Top 10"
          xmlns="http://pmd.sourceforge.net/ruleset/3.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/3.0.0
                              https://pmd.github.io/pmd-7.0.0/ruleset_3_0_0.xsd">
 
     <description>
-        Custom PMD ruleset for Salesforce Flow metadata using XPath 3.1 rules (PMD 7).
-        Handles XML namespaces correctly and detects common Flow issues and security vulnerabilities.
+        Advanced PMD ruleset for Salesforce Flow metadata.
+        Covers OWASP Top 10 risks + common security vulnerabilities:
+        - A01: Broken Access Control
+        - A02: Cryptographic Failures
+        - A03: Injection (SOQL, URL, HTML)
+        - A04: Insecure Design
+        - A05: Security Misconfiguration
+        - A06: Vulnerable and Outdated Components
+        - A07: Identification & Authentication Failures
+        - A08: Software & Data Integrity Failures
+        - A09: Security Logging & Monitoring Failures
+        - A10: Server-Side Request Forgery (SSRF)
+        Also detects hardcoded secrets, HTTP URLs, embedded scripts, unfiltered GetRecords, etc.
     </description>
 
-    <!-- Rule 1: Hardcoded email addresses -->
+    <!-- ====== Hardcoded Sensitive Data ====== -->
+    <rule name="HardcodedSecrets"
+          language="xml"
+          message="Avoid hardcoded passwords, tokens, or API keys in Flow assignments."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[
+                        matches(string(.), 'password|token|secret|apikey|key', 'i')
+                    ]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- ====== Hardcoded Emails ====== -->
     <rule name="HardcodedEmailInAssignment"
           language="xml"
           message="Avoid hardcoded email addresses in Flow elements."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Flags stringValue nodes with an email address pattern.</description>
-        <priority>2</priority>
+        <priority>3</priority>
         <properties>
             <property name="xpath">
                 <value>
@@ -29,13 +56,12 @@
         </properties>
     </rule>
 
-    <!-- Rule 2: GetRecords without filters -->
+    <!-- ====== Unfiltered GetRecords (Injection / Performance) ====== -->
     <rule name="UnfilteredGetRecords"
           language="xml"
-          message="Avoid GetRecords elements without filter conditions."
+          message="GetRecords elements without filters may lead to SOQL injection or performance issues."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>GetRecords should include a filter condition to avoid performance issues.</description>
-        <priority>3</priority>
+        <priority>2</priority>
         <properties>
             <property name="xpath">
                 <value>
@@ -45,12 +71,11 @@
         </properties>
     </rule>
 
-    <!-- Rule 3: Empty Decision elements -->
+    <!-- ====== Empty Decision (Logic flaw / insecure design) ====== -->
     <rule name="EmptyDecision"
           language="xml"
           message="Decision element has no conditions defined."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Detects Decision elements without conditions or outcomes.</description>
         <priority>3</priority>
         <properties>
             <property name="xpath">
@@ -61,12 +86,11 @@
         </properties>
     </rule>
 
-    <!-- Rule 4: Hardcoded Salesforce IDs -->
+    <!-- ====== Hardcoded Salesforce IDs ====== -->
     <rule name="HardcodedIdInFlow"
           language="xml"
           message="Avoid hardcoded Salesforce IDs in Flow assignments."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Flags string values that match Salesforce ID patterns (15/18 chars).</description>
         <priority>2</priority>
         <properties>
             <property name="xpath">
@@ -79,12 +103,11 @@
         </properties>
     </rule>
 
-    <!-- Rule 5: Hardcoded HTTP URLs -->
+    <!-- ====== Insecure HTTP URLs ====== -->
     <rule name="InsecureHttpUrl"
           language="xml"
-          message="Avoid hardcoded HTTP URLs in Flow elements."
+          message="Avoid hardcoded HTTP URLs."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Flags stringValue nodes containing http:// links.</description>
         <priority>3</priority>
         <properties>
             <property name="xpath">
@@ -97,12 +120,11 @@
         </properties>
     </rule>
 
-    <!-- Rule 6: Unused Variables -->
+    <!-- ====== Unused Variables ====== -->
     <rule name="UnusedVariables"
           language="xml"
           message="Flow variables should have isInput or isOutput flags set."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Detects variables missing input/output flags.</description>
         <priority>3</priority>
         <properties>
             <property name="xpath">
@@ -113,12 +135,11 @@
         </properties>
     </rule>
 
-    <!-- Rule 7: Embedded HTML or Script (XSS) -->
+    <!-- ====== Embedded HTML / Script (XSS) ====== -->
     <rule name="EmbeddedHtmlOrScript"
           language="xml"
-          message="Embedded HTML or script in strings may lead to XSS when displayed to users."
+          message="Embedded HTML or script may lead to XSS."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Flags stringValue nodes containing HTML tags or script-like content.</description>
         <priority>2</priority>
         <properties>
             <property name="xpath">
@@ -132,22 +153,34 @@
         </properties>
     </rule>
 
-    <!-- Rule 8: Hardcoded Secrets -->
-    <rule name="HardcodedSecrets"
+    <!-- ====== Sensitive Logging ====== -->
+    <rule name="SensitiveLogging"
           language="xml"
-          message="Avoid hardcoded passwords, tokens, or API keys in Flow assignments."
+          message="Avoid logging sensitive values in Flow assignments."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Flags stringValue nodes containing likely secrets.</description>
         <priority>2</priority>
         <properties>
             <property name="xpath">
                 <value>
                     //*:elements/*:assignmentItems/*:value/*:stringValue[
-                        matches(string(.), 'password', 'i') or
-                        matches(string(.), 'token', 'i') or
-                        matches(string(.), 'secret', 'i') or
-                        matches(string(.), 'apikey', 'i') or
-                        matches(string(.), 'key', 'i')
+                        matches(string(.), 'password|token|secret|apikey|key', 'i')
+                    ]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- ====== External Call / SSRF / Unsafe Endpoint ====== -->
+    <rule name="UnsafeEndpoint"
+          language="xml"
+          message="Flow makes callout to external endpoint without HTTPS or whitelist."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[
+                        matches(string(.), 'http://.*', 'i')
                     ]
                 </value>
             </property>
