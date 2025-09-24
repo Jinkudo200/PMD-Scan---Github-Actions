@@ -40,16 +40,18 @@ jobs:
           sudo apt-get install -y dos2unix
           dos2unix $HOME/pmd_bin/bin/pmd
 
-      # Run PMD scan on .flow files (treated as XML)
+      # Run PMD scan on .flow files
       - name: Run Flow PMD scan
         run: |
           $HOME/pmd_bin/bin/pmd check \
-            -d .//flows \
+            -d ./flows \
             -R ./flow-ruleset.xml \
-            --extensions flow,xml \
             -f text \
-            -r pmd-flow-report.txt || true
+            -r pmd-flow-report.txt \
+            --language xml \
+            --file-extensions flow,xml || true
 
+      # Upload report
       - name: Upload Flow PMD Report
         uses: actions/upload-artifact@v4
         with:
