@@ -20,9 +20,9 @@
         <priority>2</priority>
         <properties>
             <property name="xpath">
-                <value>
+                <value><![CDATA[
                     //*:elements[*:type='Assignment']/*:assignmentItems/*:value/*:stringValue[matches(string(.), '^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')]
-                </value>
+                ]]></value>
             </property>
         </properties>
     </rule>
@@ -36,9 +36,9 @@
         <priority>3</priority>
         <properties>
             <property name="xpath">
-                <value>
+                <value><![CDATA[
                     //*:elements[*:type='GetRecords' and not(*:getRecords/*:filterLogic)]
-                </value>
+                ]]></value>
             </property>
         </properties>
     </rule>
@@ -52,9 +52,9 @@
         <priority>3</priority>
         <properties>
             <property name="xpath">
-                <value>
+                <value><![CDATA[
                     //*:elements[*:type='Decision' and not(*:decisions/*:conditions)]
-                </value>
+                ]]></value>
             </property>
         </properties>
     </rule>
@@ -68,9 +68,9 @@
         <priority>2</priority>
         <properties>
             <property name="xpath">
-                <value>
+                <value><![CDATA[
                     //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '^[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?$')]
-                </value>
+                ]]></value>
             </property>
         </properties>
     </rule>
@@ -84,9 +84,9 @@
         <priority>3</priority>
         <properties>
             <property name="xpath">
-                <value>
+                <value><![CDATA[
                     //*:elements/*:assignmentItems/*:value/*:stringValue[contains(string(.), 'http://')]
-                </value>
+                ]]></value>
             </property>
         </properties>
     </rule>
@@ -100,9 +100,9 @@
         <priority>3</priority>
         <properties>
             <property name="xpath">
-                <value>
+                <value><![CDATA[
                     //*:variables[not(@isInput) and not(@isOutput)]
-                </value>
+                ]]></value>
             </property>
         </properties>
     </rule>
@@ -116,9 +116,9 @@
         <priority>2</priority>
         <properties>
             <property name="xpath">
-                <value>
+                <value><![CDATA[
                     //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)(password|secret|token|key)')]
-                </value>
+                ]]></value>
             </property>
         </properties>
     </rule>
@@ -128,13 +128,13 @@
           language="xml"
           message="Embedded HTML or script in strings may lead to XSS when displayed to users."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Flags string values containing HTML tags or &lt;script&gt; tokens.</description>
+        <description>Flags string values containing HTML tags or <script> tokens.</description>
         <priority>2</priority>
         <properties>
             <property name="xpath">
-                <value>
-                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)<[^>]+>|&lt;script&gt;')]
-                </value>
+                <value><![CDATA[
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)<[^>]+>|<script>')]
+                ]]></value>
             </property>
         </properties>
     </rule>
