@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<ruleset name="Custom Flow Ruleset - OWASP &amp; Salesforce Security"
+<ruleset name="Custom Flow Ruleset - OWASP and Salesforce Security"
          xmlns="http://pmd.sourceforge.net/ruleset/3.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/3.0.0
                              https://pmd.github.io/pmd-7.0.0/ruleset_3_0_0.xsd">
 
     <description>
-        Custom PMD ruleset for Salesforce Flow metadata using XPath 3.1 rules (PMD 7).
-        Handles XML namespace correctly and detects common Flow security issues
-        aligned with OWASP Top 10 &amp; Salesforce Security Guidelines.
+        Custom PMD ruleset for Salesforce Flow metadata (.flow files).
+        Detects common security issues and enforces OWASP Top 10 / Salesforce best practices.
     </description>
 
     <!-- Rule 1: Hardcoded email addresses -->
@@ -22,7 +21,7 @@
         <properties>
             <property name="xpath">
                 <value>
-                    //*:elements[*:type='Assignment']/*:assignmentItems/*:value/*:stringValue[matches(string(.), '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')]
+                    //*:elements[*:type='Assignment']/*:assignmentItems/*:value/*:stringValue[matches(string(.), '^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')]
                 </value>
             </property>
         </properties>
@@ -108,65 +107,33 @@
         </properties>
     </rule>
 
-    <!-- Rule 7: SOQL without WHERE (possible injection/data leaks) -->
-    <rule name="UnrestrictedSOQL"
+    <!-- Rule 7: Hardcoded Secrets -->
+    <rule name="HardcodedSecrets"
           language="xml"
-          message="SOQL queries in flows should include WHERE conditions."
+          message="Avoid embedding secrets in Flow elements."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Detects inline SOQL without a WHERE clause.</description>
-        <priority>1</priority>
+        <description>Flags stringValue nodes containing common secret patterns like 'password', 'secret', 'token', etc.</description>
+        <priority>2</priority>
         <properties>
             <property name="xpath">
                 <value>
-                    //*:formula[matches(string(.), 'SELECT .* FROM .*', 'i') and not(matches(string(.), 'WHERE', 'i'))]
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)(password|secret|token|key)')]
                 </value>
             </property>
         </properties>
     </rule>
 
-    <!-- Rule 8: Embedded HTML or Script (XSS risk) -->
+    <!-- Rule 8: Embedded HTML / script tags -->
     <rule name="EmbeddedHtmlOrScript"
           language="xml"
           message="Embedded HTML or script in strings may lead to XSS when displayed to users."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Flags string values containing HTML tags or '&lt;script&gt;' tokens.</description>
+        <description>Flags string values containing HTML tags or &lt;script&gt; tokens.</description>
         <priority>2</priority>
         <properties>
             <property name="xpath">
                 <value>
-                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '&lt;script&gt;|&lt;.*?&gt;')]
-                </value>
-            </property>
-        </properties>
-    </rule>
-
-    <!-- Rule 9: Hardcoded Secrets -->
-    <rule name="HardcodedSecrets"
-          language="xml"
-          message="Avoid storing secrets, passwords, or tokens directly in flows."
-          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Detects assignments with values containing common secret patterns.</description>
-        <priority>1</priority>
-        <properties>
-            <property name="xpath">
-                <value>
-                    //*:stringValue[matches(string(.), '(?i)(password|secret|api[_-]?key|token)')]
-                </value>
-            </property>
-        </properties>
-    </rule>
-
-    <!-- Rule 10: Open Redirects -->
-    <rule name="OpenRedirect"
-          language="xml"
-          message="Do not construct redirect URLs dynamically without validation."
-          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description>Flags assignments that build URLs from unvalidated variables (potential open redirect).</description>
-        <priority>2</priority>
-        <properties>
-            <property name="xpath">
-                <value>
-                    //*:assignmentItems/*:value/*:stringValue[matches(string(.), 'https?://.*\{.*\}')]
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)<[^>]+>|&lt;script&gt;')]
                 </value>
             </property>
         </properties>
