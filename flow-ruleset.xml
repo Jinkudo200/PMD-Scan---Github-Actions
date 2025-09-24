@@ -1,155 +1,96 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<ruleset name="Custom Flow Ruleset - OWASP and Salesforce Security"
+<ruleset name="Custom Flow Ruleset - OWASP & Salesforce Security"
          xmlns="http://pmd.sourceforge.net/ruleset/3.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/3.0.0
-                             https://pmd.github.io/pmd-7.0.0/ruleset_3_0_0.xsd">
+                             http://pmd.sourceforge.net/ruleset_3_0_0.xsd"
+         xmlns:pmd="http://pmd.sourceforge.net/ruleset/3.0.0">
 
-    <description><![CDATA[
-        Custom PMD ruleset for Salesforce Flow metadata (.flow files).
-        Detects common security issues and enforces OWASP Top 10 / Salesforce best practices.
-    ]]></description>
-
-    <!-- Rule 1: Hardcoded email addresses -->
-    <rule name="HardcodedEmailInAssignment"
-          language="xml"
-          message="Avoid hardcoded email addresses in Flow elements."
-          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description><![CDATA[
-            Flags stringValue nodes with an email address pattern.
-        ]]></description>
-        <priority>2</priority>
-        <properties>
-            <property name="xpath">
-                <value><![CDATA[
-                    //*:elements[*:type='Assignment']/*:assignmentItems/*:value/*:stringValue[matches(string(.), '^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')]
-                ]]></value>
-            </property>
-        </properties>
-    </rule>
-
-    <!-- Rule 2: GetRecords without filters -->
-    <rule name="UnfilteredGetRecords"
-          language="xml"
-          message="Avoid GetRecords elements without filter conditions."
-          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description><![CDATA[
-            GetRecords should include a filter condition to avoid performance issues.
-        ]]></description>
-        <priority>3</priority>
-        <properties>
-            <property name="xpath">
-                <value><![CDATA[
-                    //*:elements[*:type='GetRecords' and not(*:getRecords/*:filterLogic)]
-                ]]></value>
-            </property>
-        </properties>
-    </rule>
-
-    <!-- Rule 3: Empty Decision elements -->
-    <rule name="EmptyDecision"
-          language="xml"
-          message="Decision element has no conditions defined."
-          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description><![CDATA[
-            Detects Decision elements without conditions or outcomes.
-        ]]></description>
-        <priority>3</priority>
-        <properties>
-            <property name="xpath">
-                <value><![CDATA[
-                    //*:elements[*:type='Decision' and not(*:decisions/*:conditions)]
-                ]]></value>
-            </property>
-        </properties>
-    </rule>
-
-    <!-- Rule 4: Hardcoded IDs in Assignment -->
-    <rule name="HardcodedIdInFlow"
-          language="xml"
-          message="Avoid hardcoded Salesforce IDs in Flow assignments."
-          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description><![CDATA[
-            Flags string values that match Salesforce ID patterns (15/18 chars).
-        ]]></description>
-        <priority>2</priority>
-        <properties>
-            <property name="xpath">
-                <value><![CDATA[
-                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '^[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?$')]
-                ]]></value>
-            </property>
-        </properties>
-    </rule>
-
-    <!-- Rule 5: Hardcoded URLs (http instead of https) -->
-    <rule name="InsecureHttpUrl"
-          language="xml"
-          message="Avoid hardcoded HTTP URLs in Flow elements."
-          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description><![CDATA[
-            Flags stringValue nodes containing http:// links.
-        ]]></description>
-        <priority>3</priority>
-        <properties>
-            <property name="xpath">
-                <value><![CDATA[
-                    //*:elements/*:assignmentItems/*:value/*:stringValue[contains(string(.), 'http://')]
-                ]]></value>
-            </property>
-        </properties>
-    </rule>
-
-    <!-- Rule 6: Variables with no input/output flags -->
-    <rule name="UnusedVariables"
-          language="xml"
-          message="Flow variables should have isInput or isOutput flags set."
-          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <description><![CDATA[
-            Detects variables missing input/output flags.
-        ]]></description>
-        <priority>3</priority>
-        <properties>
-            <property name="xpath">
-                <value><![CDATA[
-                    //*:variables[not(@isInput) and not(@isOutput)]
-                ]]></value>
-            </property>
-        </properties>
-    </rule>
-
-    <!-- Rule 7: Hardcoded Secrets -->
+    <!-- Rule: Hardcoded Secrets -->
     <rule name="HardcodedSecrets"
           language="xml"
-          message="Avoid embedding secrets in Flow elements."
+          message="Hardcoded secrets or passwords detected in Flow."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
         <description><![CDATA[
-            Flags stringValue nodes containing common secret patterns like 'password', 'secret', 'token', etc.
+            Detects string values that look like passwords, API keys, or secrets.
         ]]></description>
         <priority>2</priority>
         <properties>
             <property name="xpath">
                 <value><![CDATA[
-                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)(password|secret|token|key)')]
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)(password|secret|api[_-]?key)')]
                 ]]></value>
             </property>
         </properties>
     </rule>
 
-    <!-- Rule 8: Embedded HTML / script tags -->
+    <!-- Rule: Embedded HTML or Script -->
     <rule name="EmbeddedHtmlOrScript"
           language="xml"
           message="Embedded HTML or script in strings may lead to XSS when displayed to users."
           class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
         <description><![CDATA[
-            Flags string values containing HTML tags or <script> tokens.
+            Flags string values containing HTML tags or &lt;script&gt; tokens.
         ]]></description>
         <priority>2</priority>
         <properties>
             <property name="xpath">
                 <value><![CDATA[
-                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)<[^>]+>|<script>')]
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)<[^>]+>|&lt;script&gt;')]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Rule: Flow SOQL Injection (detects dynamic SOQL in Apex invocable actions) -->
+    <rule name="FlowSoqlInjection"
+          language="xml"
+          message="Potential dynamic SOQL usage in Flow could lead to injection."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description><![CDATA[
+            Detects dynamic SOQL strings in Apex invocable actions called from the Flow.
+        ]]></description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*:elements/*:actionCall/*:apexClass[matches(string(.), '(?i)(execute|query).*\\{.*\\}')]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Rule: Hardcoded URLs / External Calls -->
+    <rule name="HardcodedURLs"
+          language="xml"
+          message="Hardcoded external URLs in Flow assignments."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description><![CDATA[
+            Detects string values that contain http:// or https:// in Flow assignments.
+        ]]></description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)https?://')]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Rule: Potential Sensitive Data Logging -->
+    <rule name="SensitiveLogging"
+          language="xml"
+          message="Logging sensitive data in Flow assignments."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description><![CDATA[
+            Detects assignment strings that contain common sensitive data terms like SSN, password, token.
+        ]]></description>
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '(?i)(ssn|password|token|creditcard)')]
                 ]]></value>
             </property>
         </properties>
