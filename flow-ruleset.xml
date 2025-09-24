@@ -187,4 +187,83 @@
         </properties>
     </rule>
 
+    <!-- ===== GAP 1: Dynamic SOQL Concatenation ===== -->
+    <rule name="DynamicSoqlConcatenation"
+          language="xml"
+          message="Assignment builds SOQL dynamically – risk of SOQL injection."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[
+                        matches(string(.), 'SELECT.*FROM.*\\{!.*\\}', 'i')
+                    ]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- ===== GAP 2: DML inside Loop ===== -->
+    <rule name="DMLInLoop"
+          language="xml"
+          message="RecordCreate or RecordUpdate inside Loop may cause bulkification issues."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements[*:type='Loop']//following-sibling::*[self::*:type='RecordCreate' or self::*:type='RecordUpdate']
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- ===== GAP 3: Apex Action without Fault Connector ===== -->
+    <rule name="ApexActionNoFault"
+          language="xml"
+          message="Apex Action element has no fault connector – error handling missing."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements[*:type='ApexAction' and not(*:faultConnector)]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- ===== GAP 4: Guest-exposed Flow Start ===== -->
+    <rule name="GuestUserFlowStart"
+          language="xml"
+          message="Flow is publicly exposed – risk of Broken Access Control."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:start[@isPublic='true']
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- ===== GAP 5: External Callouts without Named Credential ===== -->
+    <rule name="RawHttpCallout"
+          language="xml"
+          message="Flow makes callout to raw HTTPS endpoint – use Named Credential or whitelist."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[
+                        matches(string(.), '^https?://', 'i') and not(ancestor::*:Action/*:actionType='NamedCredential')
+                    ]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
 </ruleset>
