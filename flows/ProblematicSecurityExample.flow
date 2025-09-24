@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+
+    <label>Problematic Security Example Flow</label>
+    <status>Active</status>
+
+    <!-- START: Guest-exposed flow (triggers PotentialGuestUserExposure) -->
+    <start>
+        <type>Site</type>
+        <isPublic>true</isPublic>
+        <label>Guest User Start</label>
+    </start>
+
+    <!-- VARIABLE: sensitive name without protection (SensitiveVariableNotProtected, VariablesMissingIO) -->
+    <variables name="passwordToken" dataType="String" />
+
+    <!-- VARIABLE: unused with no IO flags (VariablesMissingIO) -->
+    <variables name="tempVar" dataType="String" />
+
+    <!-- ELEMENT 1: Assignment with hardcoded secrets, Salesforce ID, API key, email, http URL, script tag -->
+    <elements>
+        <name>BadAssignment</name>
+        <label>Assignment with Secrets</label>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>passwordToken</assignToReference>
+            <!-- Hardcoded API key / token -->
+            <value>
+                <stringValue>APIKEY_1234567890ABCDEF1234567890ABCDEF</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>tempVar</assignToReference>
+            <!-- Hardcoded Salesforce ID -->
+            <value>
+                <stringValue>001A0000009z3smIAA</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>tempVar</assignToReference>
+            <!-- Hardcoded Email -->
+            <value>
+                <stringValue>admin@example.com</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>tempVar</assignToReference>
+            <!-- Insecure HTTP URL -->
+            <value>
+                <stringValue>http://insecure.example.com/callback</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>tempVar</assignToReference>
+            <!-- Inline script / XSS -->
+            <value>
+                <stringValue>&lt;script&gt;alert('xss');&lt;/script&gt;</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 2: GetRecords without filters (UnfilteredGetRecords) -->
+    <elements>
+        <name>UnfilteredQuery</name>
+        <type>GetRecords</type>
+        <getRecords>
+            <object>Account</object>
+            <!-- No filterLogic -->
+        </getRecords>
+    </elements>
+
+    <!-- ELEMENT 3: Loop containing DML (DMLInLoopPattern) -->
+    <elements>
+        <name>LoopOverAccounts</name>
+        <type>Loop</type>
+        <label>Looping Accounts</label>
+    </elements>
+    <elements>
+        <name>CreateRecordInsideLoop</name>
+        <type>RecordCreate</type>
+        <label>Create Record in Loop</label>
+    </elements>
+
+    <!-- ELEMENT 4: Assignment building dynamic SOQL with variable (PossibleDynamicSoqlConcatenation) -->
+    <elements>
+        <name>DynamicQueryAssignment</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>tempVar</assignToReference>
+            <value>
+                <stringValue>SELECT Id, Name FROM Account WHERE Name = '{!passwordToken}'</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 5: Apex Action with no fault connector (ApexActionRequiresReview, MissingFaultHandling) -->
+    <elements>
+        <name>RunApexAction</name>
+        <type>ApexAction</type>
+        <label>Call Apex without Sharing</label>
+        <actionType>Apex</actionType>
+        <!-- No faultConnector -->
+    </elements>
+
+    <!-- ELEMENT 6: External callout with raw HTTPS endpoint (HttpCalloutOrExternalEndpointRequiresNamedCredential) -->
+    <elements>
+        <name>ExternalCallout</name>
+        <type>Action</type>
+        <label>Raw Callout</label>
+        <actionType>HttpCallout</actionType>
+        <assignmentItems>
+            <assignToReference>tempVar</assignToReference>
+            <value>
+                <stringValue>https://external.example.com/api/send</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+</Flow>
