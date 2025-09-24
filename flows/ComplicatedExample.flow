@@ -1,14 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+
+    <!-- Variables -->
     <variables>
         <variable name="userEmail" dataType="String"/>
-        <variable name="secretToken" dataType="String"/>
-        <variable name="unusedVar" dataType="String"/>
+        <variable name="userPassword" dataType="String"/>
+        <variable name="apiToken" dataType="String"/>
+        <variable name="unusedVar1" dataType="String"/>
+        <variable name="unusedVar2" dataType="String"/>
     </variables>
 
     <elements>
-        <!-- Assignment with hardcoded email and password -->
-        <element type="Assignment" name="AssignHardcodedValues">
+        <!-- Multiple Assignments with hardcoded secrets -->
+        <element type="Assignment" name="AssignSecrets1">
             <assignmentItems>
                 <assignmentItem>
                     <value>
@@ -17,7 +21,7 @@
                 </assignmentItem>
                 <assignmentItem>
                     <value>
-                        <stringValue>MySecretPassword123</stringValue>
+                        <stringValue>SecretPassword123!</stringValue>
                     </value>
                 </assignmentItem>
                 <assignmentItem>
@@ -27,42 +31,135 @@
                 </assignmentItem>
                 <assignmentItem>
                     <value>
-                        <stringValue>http://insecure-endpoint.com/api</stringValue>
+                        <stringValue>http://insecure.example.com/api</stringValue>
+                    </value>
+                </assignmentItem>
+                <assignmentItem>
+                    <value>
+                        <stringValue>&lt;script&gt;alert('XSS Attack')&lt;/script&gt;</stringValue>
                     </value>
                 </assignmentItem>
             </assignmentItems>
         </element>
 
-        <!-- GetRecords without filter -->
-        <element type="GetRecords" name="GetAllAccounts">
+        <element type="Assignment" name="AssignSecrets2">
+            <assignmentItems>
+                <assignmentItem>
+                    <value>
+                        <stringValue>user2@example.com</stringValue>
+                    </value>
+                </assignmentItem>
+                <assignmentItem>
+                    <value>
+                        <stringValue>AnotherSecretToken</stringValue>
+                    </value>
+                </assignmentItem>
+                <assignmentItem>
+                    <value>
+                        <stringValue>006xx000001ABCDXYZ</stringValue>
+                    </value>
+                </assignmentItem>
+                <assignmentItem>
+                    <value>
+                        <stringValue>http://api.badserver.com/data</stringValue>
+                    </value>
+                </assignmentItem>
+            </assignmentItems>
+        </element>
+
+        <!-- Multiple Unfiltered GetRecords -->
+        <element type="GetRecords" name="GetAccountsNoFilter">
+            <getRecords/>
+        </element>
+        <element type="GetRecords" name="GetContactsNoFilter">
             <getRecords/>
         </element>
 
-        <!-- Empty Decision element -->
-        <element type="Decision" name="DecisionWithoutConditions">
+        <!-- Decisions without conditions -->
+        <element type="Decision" name="DecisionEmpty1">
+            <decisions/>
+        </element>
+        <element type="Decision" name="DecisionEmpty2">
             <decisions/>
         </element>
 
-        <!-- Assignment with embedded HTML -->
-        <element type="Assignment" name="HtmlInjectionExample">
+        <!-- Embedded HTML and Scripts in Assignments -->
+        <element type="Assignment" name="HtmlInjection1">
             <assignmentItems>
                 <assignmentItem>
                     <value>
-                        <stringValue>&lt;script&gt;alert('XSS')&lt;/script&gt;</stringValue>
+                        <stringValue>&lt;div&gt;Injected HTML&lt;/div&gt;</stringValue>
+                    </value>
+                </assignmentItem>
+                <assignmentItem>
+                    <value>
+                        <stringValue>&lt;script&gt;console.log('XSS')&lt;/script&gt;</stringValue>
                     </value>
                 </assignmentItem>
             </assignmentItems>
         </element>
 
-        <!-- Logging sensitive token -->
-        <element type="Assignment" name="LogSensitiveToken">
+        <element type="Assignment" name="HtmlInjection2">
             <assignmentItems>
                 <assignmentItem>
                     <value>
-                        <stringValue>SuperSecretAPIKey</stringValue>
+                        <stringValue>&lt;img src='x' onerror='alert(1)'/&gt;</stringValue>
+                    </value>
+                </assignmentItem>
+            </assignmentItems>
+        </element>
+
+        <!-- Logging sensitive data -->
+        <element type="Assignment" name="LogSensitive1">
+            <assignmentItems>
+                <assignmentItem>
+                    <value>
+                        <stringValue>SuperSecretAPIKey1</stringValue>
+                    </value>
+                </assignmentItem>
+                <assignmentItem>
+                    <value>
+                        <stringValue>AnotherSecret123</stringValue>
+                    </value>
+                </assignmentItem>
+            </assignmentItems>
+        </element>
+
+        <element type="Assignment" name="LogSensitive2">
+            <assignmentItems>
+                <assignmentItem>
+                    <value>
+                        <stringValue>PasswordForUser2</stringValue>
+                    </value>
+                </assignmentItem>
+                <assignmentItem>
+                    <value>
+                        <stringValue>token123456789</stringValue>
+                    </value>
+                </assignmentItem>
+            </assignmentItems>
+        </element>
+
+        <!-- Unsafe external endpoints -->
+        <element type="Assignment" name="ExternalCall1">
+            <assignmentItems>
+                <assignmentItem>
+                    <value>
+                        <stringValue>http://untrusted.external.com/service</stringValue>
+                    </value>
+                </assignmentItem>
+            </assignmentItems>
+        </element>
+
+        <element type="Assignment" name="ExternalCall2">
+            <assignmentItems>
+                <assignmentItem>
+                    <value>
+                        <stringValue>http://malicious.site.com/data</stringValue>
                     </value>
                 </assignmentItem>
             </assignmentItems>
         </element>
     </elements>
+
 </Flow>
