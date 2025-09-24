@@ -8,8 +8,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-scan-flows:
+  flow-scan:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,7 +21,17 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Download PMD
+      # Cache PMD distribution
+      - name: Cache PMD
+        id: cache-pmd
+        uses: actions/cache@v4
+        with:
+          path: $HOME/pmd_bin
+          key: pmd-7.17.0
+
+      # Download PMD if not cached
+      - name: Download PMD (if not cached)
+        if: steps.cache-pmd.outputs.cache-hit != 'true'
         run: |
           curl -L -o pmd_bin.zip https://github.com/pmd/pmd/releases/download/pmd_releases%2F7.17.0/pmd-dist-7.17.0-bin.zip
           unzip pmd_bin.zip -d $HOME
@@ -29,11 +40,13 @@ jobs:
           sudo apt-get install -y dos2unix
           dos2unix $HOME/pmd_bin/bin/pmd
 
-      - name: Run PMD scan on Flows
+      # Run PMD scan on .flow files (treated as XML)
+      - name: Run Flow PMD scan
         run: |
           $HOME/pmd_bin/bin/pmd check \
-            -d ./flows \
+            -d .//flows \
             -R ./flow-ruleset.xml \
+            --extensions flow,xml \
             -f text \
             -r pmd-flow-report.txt || true
 
