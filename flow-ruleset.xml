@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<ruleset name="Custom Flow Ruleset - OWASP and Salesforce Security"
+<ruleset name="Custom Flow Ruleset - OWASP & Salesforce Security"
          xmlns="http://pmd.sourceforge.net/ruleset/3.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/3.0.0
@@ -8,7 +8,7 @@
 
     <description>
         Custom PMD ruleset for Salesforce Flow metadata using XPath 3.1 rules (PMD 7).
-        Handles XML namespace correctly and detects common Flow security issues.
+        Handles XML namespaces correctly and detects common Flow issues and security vulnerabilities.
     </description>
 
     <!-- Rule 1: Hardcoded email addresses -->
@@ -21,13 +21,15 @@
         <properties>
             <property name="xpath">
                 <value>
-                    //*:elements[*:type='Assignment']/*:assignmentItems/*:value/*:stringValue[matches(string(.), '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')]
+                    //*:elements[*:type='Assignment']/*:assignmentItems/*:value/*:stringValue[
+                        matches(string(.), '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+                    ]
                 </value>
             </property>
         </properties>
     </rule>
 
-    <!-- Rule 2: Unfiltered GetRecords -->
+    <!-- Rule 2: GetRecords without filters -->
     <rule name="UnfilteredGetRecords"
           language="xml"
           message="Avoid GetRecords elements without filter conditions."
@@ -69,7 +71,9 @@
         <properties>
             <property name="xpath">
                 <value>
-                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '^[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?$')]
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[
+                        matches(string(.), '^[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?$')
+                    ]
                 </value>
             </property>
         </properties>
@@ -85,13 +89,15 @@
         <properties>
             <property name="xpath">
                 <value>
-                    //*:elements/*:assignmentItems/*:value/*:stringValue[contains(string(.), 'http://')]
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[
+                        contains(string(.), 'http://')
+                    ]
                 </value>
             </property>
         </properties>
     </rule>
 
-    <!-- Rule 6: Unused Flow variables -->
+    <!-- Rule 6: Unused Variables -->
     <rule name="UnusedVariables"
           language="xml"
           message="Flow variables should have isInput or isOutput flags set."
@@ -118,15 +124,15 @@
             <property name="xpath">
                 <value>
                     //*:elements/*:assignmentItems/*:value/*:stringValue[
-                        matches(string(.), '&lt;[^&gt;]+&gt;') or
-                        matches(string(.), '(?i)script')
+                        matches(string(.), '&lt;[^&gt;]+&gt;', 'i') or
+                        matches(string(.), 'script', 'i')
                     ]
                 </value>
             </property>
         </properties>
     </rule>
 
-    <!-- Rule 8: Hardcoded Secrets (passwords, tokens, keys) -->
+    <!-- Rule 8: Hardcoded Secrets -->
     <rule name="HardcodedSecrets"
           language="xml"
           message="Avoid hardcoded passwords, tokens, or API keys in Flow assignments."
@@ -137,7 +143,11 @@
             <property name="xpath">
                 <value>
                     //*:elements/*:assignmentItems/*:value/*:stringValue[
-                        matches(string(.), '(?i)(password|token|secret|apikey|key)')
+                        matches(string(.), 'password', 'i') or
+                        matches(string(.), 'token', 'i') or
+                        matches(string(.), 'secret', 'i') or
+                        matches(string(.), 'apikey', 'i') or
+                        matches(string(.), 'key', 'i')
                     ]
                 </value>
             </property>
