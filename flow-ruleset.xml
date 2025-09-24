@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<ruleset name="Advanced Flow Security & OWASP Top 10"
+<ruleset name="Advanced Flow Security and OWASP Top 10"
          xmlns="http://pmd.sourceforge.net/ruleset/3.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/3.0.0
@@ -15,9 +15,9 @@
         - A04: Insecure Design
         - A05: Security Misconfiguration
         - A06: Vulnerable and Outdated Components
-        - A07: Identification & Authentication Failures
-        - A08: Software & Data Integrity Failures
-        - A09: Security Logging & Monitoring Failures
+        - A07: Identification and Authentication Failures
+        - A08: Software and Data Integrity Failures
+        - A09: Security Logging and Monitoring Failures
         - A10: Server-Side Request Forgery (SSRF)
         Also detects hardcoded secrets, HTTP URLs, embedded scripts, unfiltered GetRecords, etc.
     </description>
