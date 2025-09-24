@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>57.0</apiVersion>
+    <label>MegaSecurityTestFlow</label>
+    <status>Active</status>
+
+    <!-- VARIABLES -->
+    <variables name="passwordToken" dataType="String" />
+    <variables name="tempVar1" dataType="String" />
+    <variables name="tempVar2" dataType="String" />
+    <variables name="userEmail" dataType="String" />
+    <variables name="httpLink" dataType="String" />
+    <variables name="unusedVar1" dataType="String" />
+    <variables name="unusedVar2" dataType="String" />
+
+    <!-- ELEMENT 1: Multiple Assignments with Secrets, IDs, Emails, HTTP, HTML -->
+    <elements>
+        <name>MultiBadAssignment</name>
+        <label>Multiple Hardcoded Values</label>
+        <type>Assignment</type>
+
+        <!-- Hardcoded API key -->
+        <assignmentItems>
+            <assignToReference>passwordToken</assignToReference>
+            <value><stringValue>APIKEY_1234567890ABCDEF1234567890ABCDEF</stringValue></value>
+        </assignmentItems>
+
+        <!-- Hardcoded Salesforce ID -->
+        <assignmentItems>
+            <assignToReference>tempVar1</assignToReference>
+            <value><stringValue>001A0000009z3smIAA</stringValue></value>
+        </assignmentItems>
+
+        <!-- Hardcoded Email -->
+        <assignmentItems>
+            <assignToReference>userEmail</assignToReference>
+            <value><stringValue>admin@example.com</stringValue></value>
+        </assignmentItems>
+
+        <!-- Insecure HTTP URL -->
+        <assignmentItems>
+            <assignToReference>httpLink</assignToReference>
+            <value><stringValue>http://insecure.example.com/callback</stringValue></value>
+        </assignmentItems>
+
+        <!-- Embedded Script -->
+        <assignmentItems>
+            <assignToReference>tempVar2</assignToReference>
+            <value><stringValue>&lt;script&gt;alert('xss1');&lt;/script&gt;</stringValue></value>
+        </assignmentItems>
+
+        <!-- Another Embedded Script -->
+        <assignmentItems>
+            <assignToReference>tempVar2</assignToReference>
+            <value><stringValue>&lt;script&gt;alert('xss2');&lt;/script&gt;</stringValue></value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 2: Unfiltered GetRecords (twice) -->
+    <elements>
+        <name>GetAllAccounts1</name>
+        <type>GetRecords</type>
+        <getRecords><object>Account</object></getRecords>
+    </elements>
+    <elements>
+        <name>GetAllAccounts2</name>
+        <type>GetRecords</type>
+        <getRecords><object>Contact</object></getRecords>
+    </elements>
+
+    <!-- ELEMENT 3: Loop with DML inside -->
+    <elements>
+        <name>LoopAccounts</name>
+        <type>Loop</type>
+        <label>Loop over Accounts</label>
+    </elements>
+    <elements>
+        <name>CreateRecordInLoop</name>
+        <type>RecordCreate</type>
+        <label>Create Record in Loop</label>
+    </elements>
+
+    <!-- ELEMENT 4: Dynamic SOQL -->
+    <elements>
+        <name>DynamicQuery</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>tempVar1</assignToReference>
+            <value><stringValue>SELECT Id, Name FROM Account WHERE Name = '{!passwordToken}'</stringValue></value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 5: Empty Decision -->
+    <elements>
+        <name>EmptyDecisionNode</name>
+        <type>Decision</type>
+        <!-- No conditions -->
+    </elements>
+
+    <!-- ELEMENT 6: Apex Action without fault -->
+    <elements>
+        <name>RunApexAction</name>
+        <type>ApexAction</type>
+        <label>Call Apex without Sharing</label>
+        <actionType>Apex</actionType>
+    </elements>
+
+    <!-- ELEMENT 7: External HTTPS callout -->
+    <elements>
+        <name>ExternalCallout</name>
+        <type>Action</type>
+        <label>Raw HTTPS Callout</label>
+        <actionType>HttpCallout</actionType>
+        <assignmentItems>
+            <assignToReference>tempVar2</assignToReference>
+            <value><stringValue>https://external.example.com/api/send</stringValue></value>
+        </assignmentItems>
+    </elements>
+
+</Flow>
