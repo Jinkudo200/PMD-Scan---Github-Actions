@@ -1,0 +1,44 @@
+name: PMD Flow Scan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-scan-flows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Download PMD
+        run: |
+          curl -L -o pmd_bin.zip https://github.com/pmd/pmd/releases/download/pmd_releases%2F7.17.0/pmd-dist-7.17.0-bin.zip
+          unzip pmd_bin.zip -d $HOME
+          mv $HOME/pmd-bin-7.17.0 $HOME/pmd_bin
+          chmod +x $HOME/pmd_bin/bin/pmd
+          sudo apt-get install -y dos2unix
+          dos2unix $HOME/pmd_bin/bin/pmd
+
+      - name: Run PMD scan on Flows
+        run: |
+          $HOME/pmd_bin/bin/pmd check \
+            -d ./flows \
+            -R ./flow-ruleset.xml \
+            -f text \
+            -r pmd-flow-report.txt || true
+
+      - name: Upload Flow PMD Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmd-flow-report
+          path: pmd-flow-report.txt
