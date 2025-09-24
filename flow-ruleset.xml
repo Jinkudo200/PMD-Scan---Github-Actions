@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ruleset name="Custom Flow Ruleset - OWASP & Salesforce Security"
+         xmlns="http://pmd.sourceforge.net/ruleset/3.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/3.0.0
+                             https://pmd.github.io/pmd-7.0.0/ruleset_3_0_0.xsd">
+
+    <description>
+        Custom PMD ruleset for Salesforce Flow metadata using XPath 3.1 rules (PMD 7).
+        These rules map to OWASP Top 10 concerns and typical Salesforce security requirements:
+        - Sensitive data detection & protection
+        - Unprotected variables and hardcoded secrets
+        - Unfiltered queries & bulk/loop anti-patterns
+        - Missing error/fault handling
+        - Insecure HTTP, script injection, and calls to Apex/actions that need review
+    </description>
+
+    <!-- RULE 1: Hardcoded credentials / API keys / tokens -->
+    <rule name="HardcodedSecretsInFlow"
+          language="xml"
+          message="Avoid hardcoded secrets (API keys, tokens, passwords) inside flows."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Flags stringValue nodes that look like API keys, long base64 strings, or common secret names.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[
+                        matches(string(.), '(?i)(apikey|api_key|access_token|secret|private_key|client_secret|password)') 
+                        or matches(string(.), '(?i)^[A-Za-z0-9\-_]{32,}$') 
+                        or matches(string(.), '(?i)^(eyJ|[A-Za-z0-9+/]{40,}=*)$')
+                    ]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 2: Sensitive variable not protected -->
+    <rule name="SensitiveVariableNotProtected"
+          language="xml"
+          message="Variable appears sensitive (password/token) and is not protected."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Detects variable names containing sensitive keywords that don't have isProtected='true'.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:variables[
+                        matches(@name, '(?i)(password|pwd|token|secret|apikey|api_key|credential)') 
+                        and not(@isProtected = 'true')
+                    ]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 3: Hardcoded Salesforce IDs -->
+    <rule name="HardcodedSalesforceId"
+          language="xml"
+          message="Avoid hardcoded Salesforce record IDs inside Flows."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Detects 15/18-char Salesforce ID patterns in string values.</description>
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[matches(string(.), '^[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?$')]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 4: Insecure HTTP (http://) -->
+    <rule name="InsecureHttpUrl"
+          language="xml"
+          message="Avoid hardcoded HTTP URLs — prefer TLS (https)."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Flags any stringValue containing http:// (not https://).</description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[contains(lower-case(string(.)), 'http://')]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 5: Potential dynamic SOQL / concatenation pattern (Injection risk) -->
+    <rule name="PossibleDynamicSoqlConcatenation"
+          language="xml"
+          message="Potential dynamic SOQL-like concatenation — review for injection risk."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Flags string values that look like concatenated query fragments or contain SELECT/WHERE keywords combined with variable tokens.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[
+                        matches(lower-case(string(.)), 'select\\s+.+\\s+from') 
+                        and matches(string(.), '\\{!|\\$\\{|\\$\\(') 
+                        or (matches(lower-case(string(.)), 'where\\s+') and contains(string(.), '{!'))
+                    ]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 6: Unfiltered GetRecords (performance & data exposure) -->
+    <rule name="UnfilteredGetRecords"
+          language="xml"
+          message="GetRecords without filters can expose data or cause performance problems."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Detects GetRecords elements missing filter criteria (no filterLogic or filters).</description>
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements[*:type='GetRecords' and not(*:getRecords/*:filterLogic or *:getRecords/*:filters)]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 7: DML-like operations inside loops (bulkiness / governor risk) -->
+    <rule name="DMLInLoopPattern"
+          language="xml"
+          message="Flow pattern where record creation/update may happen per-loop — check for bulk-safe design."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Flags Loop elements that contain immediate RecordCreate/Update/Delete elements or assignments that suggest per-iteration DML.</description>
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements[*:type='Loop' and (following-sibling::*[1][*:type='RecordCreate' or *:type='RecordUpdate' or *:type='RecordDelete'] 
+                    or .//*:assignmentItems/*:value/*:stringValue[matches(lower-case(string(.)), 'insert\\s+|update\\s+|delete\\s+')])]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 8: Apex Actions — require manual review (permissions, with/without sharing) -->
+    <rule name="ApexActionRequiresReview"
+          language="xml"
+          message="Apex action found — review Apex class for sharing/permission/security implications."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Any Action/ApexAction elements are flagged for review because Apex can run in system context and may bypass checks.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements[*:type = 'Action' or *:type = 'ApexAction' or *:actionType = 'Apex'] 
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 9: Missing fault connectors / missing explicit error handling -->
+    <rule name="MissingFaultHandling"
+          language="xml"
+          message="Element that can fault (Action/Subflow/Apex) has no fault connector — add explicit fault/outcome handling."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Flags actionable elements commonly capable of faults that don't define fault/outcome or faultConnector nodes.</description>
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements[
+                        (*:type='Action' or *:type='ApexAction' or *:type='Subflow' or *:type='RecordCreate' or *:type='RecordUpdate') 
+                        and not(*:faultConnector) and not(*:outcomes)
+                    ]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 10: Flow exposed to Guest/Unauthenticated users (marker) -->
+    <rule name="PotentialGuestUserExposure"
+          language="xml"
+          message="Flow may be exposed to guest or site users — review entry points and sharing/field-level security."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Flags flows with Start elements that use type 'Site' or contain properties indicating public exposure. This is a conservative indicator for review.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:start[*:type = 'Site' or *:isPublic = 'true' or matches(string(*:label), '(?i)guest|site|public')]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 11: Inline script/HTML content (XSS risk) -->
+    <rule name="InlineScriptOrHtml"
+          language="xml"
+          message="Embedded HTML or script in strings may lead to XSS when displayed to users."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Flags string values containing HTML tags or '<script>' tokens.</description>
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[
+                        matches(lower-case(string(.)), '&lt;/?(script|iframe|img|svg|object)[\\s>]' )
+                        or contains(lower-case(string(.)), '&lt;script')
+                    ]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 12: Variables lacking explicit isInput/isOutput flags (dataflow/least-privilege) -->
+    <rule name="VariablesMissingIO"
+          language="xml"
+          message="Flow variables should explicitly declare isInput or isOutput to reduce accidental exposure."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Detects variables missing isInput and isOutput attributes — encourage explicit intent and least privilege.</description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:variables[not(@isInput) and not(@isOutput)]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 13: Hardcoded email addresses (notify config leakage) -->
+    <rule name="HardcodedEmailInAssignment"
+          language="xml"
+          message="Avoid hardcoded email addresses in Flow elements — use configurable references when possible."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Flags stringValue nodes with an email address pattern.</description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements[*:type='Assignment']/*:assignmentItems/*:value/*:stringValue[matches(string(.), '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- RULE 14: External callouts or Named Credential usage missing -->
+    <rule name="HttpCalloutOrExternalEndpointRequiresNamedCredential"
+          language="xml"
+          message="Calls to external endpoints should use Named Credentials; flag raw callout endpoints for review."
+          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>Flags string values containing external URLs (http/https) used in callout/action contexts where Named Credentials should be used.</description>
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    //*:elements/*:assignmentItems/*:value/*:stringValue[
+                        matches(lower-case(string(.)), 'https?://') 
+                        and not(contains(lower-case(string(.)), 'namedcredential') )
+                    ]
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+</ruleset>
