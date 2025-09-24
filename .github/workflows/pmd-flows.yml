@@ -40,7 +40,7 @@ jobs:
           sudo apt-get install -y dos2unix
           dos2unix $HOME/pmd_bin/bin/pmd
 
-      # Run PMD scan on .flow files
+      # Run PMD scan on .flow files (treated as XML)
       - name: Run Flow PMD scan
         run: |
           $HOME/pmd_bin/bin/pmd check \
@@ -48,8 +48,7 @@ jobs:
             -R ./flow-ruleset.xml \
             -f text \
             -r pmd-flow-report.txt \
-            --language xml \
-            --file-extensions flow,xml || true
+            --force-language xml || true
 
       # Upload report
       - name: Upload Flow PMD Report
