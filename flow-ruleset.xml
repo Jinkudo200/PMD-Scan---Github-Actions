@@ -188,21 +188,22 @@
     </rule>
 
     <!-- ===== GAP 1: Dynamic SOQL Concatenation ===== -->
-    <rule name="DynamicSoqlConcatenation"
-          language="xml"
-          message="Assignment builds SOQL dynamically – risk of SOQL injection."
-          class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
-        <priority>2</priority>
-        <properties>
-            <property name="xpath">
-                <value>
-                    //*:elements/*:assignmentItems/*:value/*:stringValue[
-                        matches(string(.), 'SELECT.*FROM.*\\{!.*\\}', 'i')
-                    ]
-                </value>
-            </property>
-        </properties>
-    </rule>
+         <rule name="DynamicSoqlConcatenation"
+               language="xml"
+               message="Avoid building dynamic SOQL queries with Flow variables (SOQL injection risk)."
+               class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+             <priority>2</priority>
+             <properties>
+                 <property name="xpath">
+                     <value>
+                         //*:elements/*:assignmentItems/*:value/*:stringValue[
+                             matches(string(.), 'SELECT .* FROM .* WHERE .* = ''\{\!.*\}''', 'i')
+                         ]
+                     </value>
+                 </property>
+             </properties>
+         </rule>
+
 
     <!-- ===== GAP 2: DML inside Loop ===== -->
     <rule name="DMLInLoop"
