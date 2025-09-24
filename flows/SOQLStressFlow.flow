@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>SOQL Injection Test Flow</label>
+    <status>Active</status>
+
+    <!-- Public start to simulate guest input -->
+    <start>
+        <type>Site</type>
+        <isPublic>true</isPublic>
+        <label>Public Guest Start</label>
+    </start>
+
+    <!-- Variables controlled by user input -->
+    <variables name="userInputAccount" dataType="String"/>
+    <variables name="userInputContact" dataType="String"/>
+    <variables name="dynamicQuery" dataType="String"/>
+    <variables name="unsafeEmail" dataType="String"/>
+
+    <!-- ELEMENT 1: Dynamic SOQL using user input -->
+    <elements>
+        <name>DynamicAccountQuery</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>dynamicQuery</assignToReference>
+            <value>
+                <stringValue>SELECT Id, Name FROM Account WHERE Name = '{!userInputAccount}'</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 2: Another dynamic SOQL using contact email -->
+    <elements>
+        <name>DynamicContactQuery</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>dynamicQuery</assignToReference>
+            <value>
+                <stringValue>SELECT Id, Email FROM Contact WHERE Email = '{!unsafeEmail}'</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 3: Concatenated dynamic query -->
+    <elements>
+        <name>DynamicQueryConcat</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>dynamicQuery</assignToReference>
+            <value>
+                <stringValue>SELECT Id FROM Opportunity WHERE Name = '{!userInputAccount}' AND OwnerId = '{!userInputContact}'</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 4: Loop generating dynamic queries -->
+    <elements>
+        <name>LoopDynamicQueries</name>
+        <type>Loop</type>
+    </elements>
+    <elements>
+        <name>DynamicQueryInLoop</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>dynamicQuery</assignToReference>
+            <value>
+                <stringValue>SELECT Id, StageName FROM Opportunity WHERE StageName = '{!userInputAccount}'</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 5: Complex concatenated dynamic SOQL -->
+    <elements>
+        <name>ComplexDynamicSOQL</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>dynamicQuery</assignToReference>
+            <value>
+                <stringValue>SELECT Id, Name, Owner.Email FROM Account WHERE Name LIKE '%{!userInputAccount}%' AND Owner.Email = '{!unsafeEmail}'</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+</Flow>
