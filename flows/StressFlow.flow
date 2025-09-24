@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Ultra-Complicated Security Test Flow</label>
+    <status>Active</status>
+
+    <!-- Guest-exposed start (triggers GuestUserFlowStart) -->
+    <start>
+        <type>Site</type>
+        <isPublic>true</isPublic>
+        <label>Public Guest Start</label>
+    </start>
+
+    <!-- Variables missing IO flags (UnusedVariables) -->
+    <variables name="tempVar1" dataType="String"/>
+    <variables name="tempVar2" dataType="String"/>
+    <variables name="passwordToken" dataType="String"/>
+
+    <!-- ELEMENT 1: Multiple assignments with secrets, IDs, emails, HTTP, script -->
+    <elements>
+        <name>BadAssignment1</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>passwordToken</assignToReference>
+            <value>
+                <stringValue>SuperSecretPassword123</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>tempVar1</assignToReference>
+            <value>
+                <stringValue>001A0000009z3smIAA</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>tempVar2</assignToReference>
+            <value>
+                <stringValue>admin@example.com</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>tempVar2</assignToReference>
+            <value>
+                <stringValue>http://insecure.example.com/callback</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>tempVar2</assignToReference>
+            <value>
+                <stringValue>&lt;script&gt;alert('XSS');&lt;/script&gt;</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 2: Unfiltered GetRecords (UnfilteredGetRecords) -->
+    <elements>
+        <name>UnfilteredQuery1</name>
+        <type>GetRecords</type>
+        <getRecords>
+            <object>Account</object>
+        </getRecords>
+    </elements>
+
+    <!-- ELEMENT 3: Empty Decision (EmptyDecision) -->
+    <elements>
+        <name>EmptyDecision1</name>
+        <type>Decision</type>
+    </elements>
+
+    <!-- ELEMENT 4: DML inside Loop (DMLInLoop) -->
+    <elements>
+        <name>Loop1</name>
+        <type>Loop</type>
+    </elements>
+    <elements>
+        <name>CreateAccountLoop</name>
+        <type>RecordCreate</type>
+    </elements>
+
+    <!-- ELEMENT 5: Dynamic SOQL concatenation (DynamicSoqlConcatenation) -->
+    <elements>
+        <name>DynamicQuery1</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>tempVar1</assignToReference>
+            <value>
+                <stringValue>SELECT Id, Name FROM Account WHERE Name = '{!passwordToken}'</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 6: Apex Action without fault connector (ApexActionNoFault) -->
+    <elements>
+        <name>RunApex1</name>
+        <type>ApexAction</type>
+        <actionType>Apex</actionType>
+    </elements>
+
+    <!-- ELEMENT 7: External callout without Named Credential (RawHttpCallout) -->
+    <elements>
+        <name>ExternalCallout1</name>
+        <type>Action</type>
+        <actionType>HttpCallout</actionType>
+        <assignmentItems>
+            <assignToReference>tempVar2</assignToReference>
+            <value>
+                <stringValue>https://api.external-service.com/send</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <!-- ELEMENT 8: Repeat to trigger multiple times -->
+    <elements>
+        <name>BadAssignment2</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>passwordToken</assignToReference>
+            <value>
+                <stringValue>token_ABCDEF1234567890</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>tempVar1</assignToReference>
+            <value>
+                <stringValue>001B0000009z3smIAA</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>tempVar2</assignToReference>
+            <value>
+                <stringValue>user@example.com</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <elements>
+        <name>UnfilteredQuery2</name>
+        <type>GetRecords</type>
+        <getRecords>
+            <object>Contact</object>
+        </getRecords>
+    </elements>
+
+    <elements>
+        <name>EmptyDecision2</name>
+        <type>Decision</type>
+    </elements>
+
+    <elements>
+        <name>Loop2</name>
+        <type>Loop</type>
+    </elements>
+    <elements>
+        <name>CreateContactLoop</name>
+        <type>RecordCreate</type>
+    </elements>
+
+    <elements>
+        <name>DynamicQuery2</name>
+        <type>Assignment</type>
+        <assignmentItems>
+            <assignToReference>tempVar1</assignToReference>
+            <value>
+                <stringValue>SELECT Id, Email FROM Contact WHERE Email = '{!tempVar2}'</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+
+    <elements>
+        <name>RunApex2</name>
+        <type>ApexAction</type>
+        <actionType>Apex</actionType>
+    </elements>
+
+    <elements>
+        <name>ExternalCallout2</name>
+        <type>Action</type>
+        <actionType>HttpCallout</actionType>
+        <assignmentItems>
+            <assignToReference>tempVar2</assignToReference>
+            <value>
+                <stringValue>http://api.example.com/unsafe</stringValue>
+            </value>
+        </assignmentItems>
+    </elements>
+</Flow>
