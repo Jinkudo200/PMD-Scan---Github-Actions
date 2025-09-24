@@ -190,16 +190,16 @@
     <!-- ===== GAP 1: Dynamic SOQL Concatenation ===== -->
          <rule name="DynamicSoqlConcatenation"
                language="xml"
-               class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule"
-               message="Dynamic SOQL detected in Flow using {!variable}">
+               message="Dynamic SOQL detected in Flow Assignment"
+               class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
              <description>
-                 Detects usage of Flow variables in dynamic SOQL expressions.
+                 Detects dynamic SOQL concatenation in Flow Assignment elements.
              </description>
              <priority>2</priority>
              <properties>
                  <property name="xpath">
                      <value>
-                         //elements//*[matches(., '\{\![^}]+\}', 'm')]
+                         //elements[type='Assignment']/assignmentItems/value/stringValue[matches(., '\{!\w+\}')]
                      </value>
                  </property>
              </properties>
